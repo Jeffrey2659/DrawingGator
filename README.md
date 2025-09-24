@@ -1,7 +1,6 @@
 # DrawingGator
 
-Gizmos go brrr
-
+Polygraph
 
 #Edited by Jeffrey James
 
