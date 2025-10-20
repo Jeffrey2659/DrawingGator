@@ -73,7 +73,7 @@ class Presenter:
             n = self.m.load_from_file(path)
             self.v.set_progress(0, max(1, self.m.total))
             self.v.log(f"Loaded {n} lines from {self.m.loaded_name}")
-            joined = "\n".join(line.decode("ascii", errors="ignore").strip() for line in self.m.lines)
+            joined = "\n".join(line.decode("ascii", errors="ignore") for line in self.m.lines)
             self.v.log("=== Loaded G-code ===\n" + joined)
         except Exception as e:
             self.v.warn(f"Could not read file:\n{e}")
@@ -88,6 +88,7 @@ class Presenter:
         self.m.reset_job_counters()
         self.v.log("Starting G-code stream…")
         self.streamer.start(self.m.lines)
+        self.v.log("Streaming started: Debug Checkpoint 1.")
 
     def handle_pause(self):
         if not self.streamer.is_paused():

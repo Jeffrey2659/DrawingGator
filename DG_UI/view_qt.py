@@ -27,6 +27,8 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self.statusbar.addPermanentWidget(self._progress, 1)
 
         # UI -> Presenter callbacks
+        #if no lambda then it calls the function immediately instead of waiting for the button to be clicked
+        #the lambda creates an anonymous function that calls the function when the button is clicked
         self.refresh.clicked.connect( lambda: self.on_refresh_clicked and self.on_refresh_clicked())
         self.connect.clicked.connect(lambda: self.on_connect_clicked and self.on_connect_clicked())
         self.sendGcode.clicked.connect(lambda: self.on_send_clicked and self.on_send_clicked())

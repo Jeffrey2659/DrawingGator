@@ -18,6 +18,7 @@ class GCodeStreamer(QObject):
         self.timer.timeout.connect(self._try_send_next)
 
         self.lines: list[bytes] = []
+        #idx is the index of the next line to send, tracks how many lines have been sent
         self.idx = 0
         self.total = 0
         self.awaiting_ok = False
@@ -34,10 +35,14 @@ class GCodeStreamer(QObject):
         self._paused = False
         self._rx.clear()
         self.pausedChanged.emit(False)
+        print(f"[GCodeStreamer] start(): total={self.total}, is_open={self.serial.is_open()}", flush=True)
         if not self.serial.is_open() or not self.lines:
+            print("[GCodeStreamer] start(): early-finish path hit", flush=True)
             self.finished.emit()
             return
+        
         self.timer.start()
+        print("[GCodeStreamer] start(): timer started, calling _try_send_next()", flush=True)
         self._try_send_next()
 
     def stop(self):
@@ -66,6 +71,8 @@ class GCodeStreamer(QObject):
     # ----- internals -----
     def _on_data(self, data: bytes):
          self._rx.extend(data)
+         print(f"[RX raw] {data!r}", flush=True)
+
          while True:
             nl = self._rx.find(b'\n')
             if nl == -1:
@@ -87,13 +94,18 @@ class GCodeStreamer(QObject):
 
     def _try_send_next(self):
         if self._paused or self.awaiting_ok:
+            print(f"[GCodeStreamer] _try_send_next(): paused={self._paused}, awaiting_ok={self.awaiting_ok}, returning early", flush=True)
             return
         if self.idx >= self.total:
+            print("[GCodeStreamer] _try_send_next(): all done, stopping timer and emitting finished", flush=True)
             self.timer.stop()
             self.finished.emit()
             return
         line = self.lines[self.idx]
         self.idx += 1
         self.awaiting_ok = True
+        print(f"[GCodeStreamer] _try_send_next(): sending line {self.idx}/{self.total}: {line!r}", flush=True)
         self.serial.write(line)
+        print(f"[GCodeStreamer] _try_send_next(): line sent, emitting progress", flush=True)
         self.progress.emit(self.idx, self.total)
+        print(f"[GCodeStreamer] _try_send_next(): progress emitted", flush=True)

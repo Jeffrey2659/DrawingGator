@@ -84,7 +84,7 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.port.setText(_translate("MainWindow", "Port"))
         self.baudRate.setText(_translate("MainWindow", "Baud Rate"))
-        self.baudOpt.setItemText(0, _translate("MainWindow", "1115200"))
+        self.baudOpt.setItemText(0, _translate("MainWindow", "115200"))
         self.baudOpt.setItemText(1, _translate("MainWindow", "9600"))
         self.refresh.setText(_translate("MainWindow", "Refresh"))
         self.connect.setText(_translate("MainWindow", "Connect"))
