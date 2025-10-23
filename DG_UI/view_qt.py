@@ -13,6 +13,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
     # Optional (add buttons later if desired):
     on_pause_clicked = None
     on_resume_clicked = None
+    on_upload_svg = None
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -61,9 +62,15 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self.actionUpload_Gcode.triggered.connect(lambda: self.on_upload_clicked and self.on_upload_clicked())
 
 
+
         # manual present callbacks
         self.manualLine.returnPressed.connect(self._send_manual_from_line)
         self.manualSendBtn.clicked.connect(self._send_manual_from_button)
+
+
+        #svg upload
+        #this is mapped to the uploadImage button rn, I might add a separate button later
+        self.actionUpload_Image.triggered.connect(self._ask_open_svg)
         # If you add Pause/Resume buttons in .ui (names: pauseBtn/resumeBtn), hook them:
         # self.pauseBtn.clicked.connect(lambda: self.on_pause_clicked and self.on_pause_clicked())
         # self.resumeBtn.clicked.connect(lambda: self.on_resume_clicked and self.on_resume_clicked())
@@ -118,3 +125,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         if txt and self.on_manual_send:
             self.on_manual_send(txt)
             self.manualLine.clear()
+    def _ask_open_svg(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Open SVG", "", "SVG Files (*.svg)")
+        if path and self.on_upload_svg:
+            self.on_upload_svg(path)

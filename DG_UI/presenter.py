@@ -3,6 +3,8 @@ from typing import Optional
 from model import GCodeModel
 from serial_service import SerialService
 from gcode_streamer import GCodeStreamer
+from vpype_runner import VpypeRunner
+from pathlib import Path
 
 class Presenter:
     """
@@ -18,6 +20,14 @@ class Presenter:
         self.s = serial_service
         self.m = model
         self.streamer = GCodeStreamer(self.s)
+
+
+        # This checks if the view has an attribute 'on_upload_svg' and if so, assigns the presenter's 'handle_upload_svg' method to it.
+        if hasattr(self.v, "on_upload_svg"):
+            self.v.on_upload_svg = self.handle_upload_svg
+
+        self._vp = VpypeRunner()
+        self._vp.finished.connect(self._on_vpype_finished)
 
         # Service -> Presenter
         self.s.dataReceived.connect(self._on_device_data)
@@ -163,3 +173,30 @@ class Presenter:
         # Normalize newlines for clean display
         text = text.replace('\r\n', '\n').replace('\r', '\n')
         self.v.log(text)
+        
+    def handle_upload_svg(self, svg_path: str):
+        self.v.log(f"Converting with vpype: {svg_path}\n")
+        # Decide output .gcode location (temp is fine)
+        out_path = str(Path(svg_path).with_suffix(".gcode"))
+        # Tune these to your machine (or store in settings)
+        self._vp.run_svg_to_gcode(svg_path,
+                                  out_path=out_path
+                                 )
+        #extra paramters to addd later  pen_up_z=5.0,
+                                 # pen_down_z=0.0,
+                                 # feed=2000
+     #  when vpype finishes, load the file into the model
+    def _on_vpype_finished(self, ok: bool, gcode_path: str, log_text: str):
+        if log_text:
+            self.v.log(log_text + ("\n" if not log_text.endswith("\n") else ""))
+        if not ok:
+            self.v.warn("vpype conversion failed.")
+            return
+        try:
+            count = self.m.load_from_file(gcode_path)
+            self.v.log(f"Loaded {count} lines from {gcode_path}\n")
+            # Optionally show a quick preview/progress reset if your View has it
+            if hasattr(self.v, "set_progress"):
+                self.v.set_progress(0, max(count, 1))
+        except Exception as e:
+            self.v.warn(f"Failed to load G-code: {e}")
