@@ -74,6 +74,7 @@ class GCodeStreamer(QObject):
          print(f"[RX raw] {data!r}", flush=True)
 
          while True:
+            #the find function looks for the first occurrence of b'\n' in the bytearray self._rx, and return -1 if not found 
             nl = self._rx.find(b'\n')
             if nl == -1:
                 break
@@ -82,9 +83,13 @@ class GCodeStreamer(QObject):
             del self._rx[:nl+1]
             s = line.strip().lower()
 
+            #used for debugging can remove later
+            #self.v.log(line.decode('ascii','replace'))
+
+            #removes any strings that are empty after stripping whitespace
             if not s:
                 continue
-
+          
             # Treat any terminal response as an acknowledgment for pacing
             if any(s.startswith(tok) for tok in TERM_TOKENS):
                 # You may want to stop-on-error instead of continue; for now we advance.

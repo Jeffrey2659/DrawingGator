@@ -1,9 +1,9 @@
 # serial_service.py — threaded pyserial backend (PyQt6, Python 3.13)
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThread
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThread, Qt, QTimer
 from serial.tools import list_ports
 import serial
 import time
-
+from collections import deque
 
 class _SerialWorker(QObject):
     """Lives in a QThread. Reads bytes and writes on request."""
@@ -15,7 +15,36 @@ class _SerialWorker(QObject):
         super().__init__()
         self._ser = ser
         self._running = False
-
+        self._tx = deque()
+    def start(self):
+        self._running = True
+        self._timer = QTimer(self)
+        self._timer.setInterval(1)                 # 1–5 ms polling
+        self._timer.timeout.connect(self._poll)
+        self._timer.start()
+    print("[_SerialWorker] timer polling started", flush=True)
+    @pyqtSlot()
+    def _poll(self):
+        if not (self._ser and self._ser.is_open):
+            return
+        # drain TX
+        while self._tx:
+            data = self._tx.popleft()
+            try:
+                self._ser.write(data)
+                self._ser.flush()
+            except Exception as e:
+                self.errorText.emit(f"Serial write error: {e}")
+                self._tx.clear()
+                break
+            #grbl receive buffer is 128 bytes, so only sending after receiving the okay from the receiveries ensures the buffer does not overflow
+        # read RX
+        try:
+            b = self._ser.read(self._ser.in_waiting or 1)
+            if b:
+                self.bytesReady.emit(b)
+        except Exception as e:
+            self.errorText.emit(f"Serial read error: {e}")
     @pyqtSlot()
     def run(self) -> None:
         """Reader loop (thread context)."""
@@ -44,16 +73,14 @@ class _SerialWorker(QObject):
     @pyqtSlot(bytes)
     def write(self, data: bytes) -> None:
         """Thread-safe write (queued from GUI thread)."""
-        try:
-            if self._ser and self._ser.is_open:
-                #writes data to serial port directory in bytes,could also encode and wrtite
-                self._ser.write(data)
-        except Exception as e:
-            self.errorText.emit(f"Serial write error: {e}")
+        print(f"[_SerialWorker.write] {data!r}", flush=True)
+        self._tx.append(data)
 
     @pyqtSlot()
     def stop(self) -> None:
         self._running = False
+        if hasattr(self, "_timer"):
+            self._timer.stop()
 
 
 class SerialService(QObject):
@@ -124,11 +151,14 @@ class SerialService(QObject):
         self._worker.moveToThread(self._thread)
 
         # Wire signals (cross-thread => queued connections)
-        self._thread.started.connect(self._worker.run)
+        self._thread.started.connect(self._worker.start)
         self._worker.bytesReady.connect(self.dataReceived)
         self._worker.errorText.connect(self.errorText)
         self._worker.closed.connect(self._on_worker_closed)
         self.writeRequest.connect(self._worker.write)
+        
+        # This is a direct connection to avoid queuing delays on writes
+        #self.writeRequest.connect(self._worker.write, type=Qt.ConnectionType.DirectConnection)
 
         self._thread.start()
         self._is_open = True
@@ -159,6 +189,7 @@ class SerialService(QObject):
         return self._is_open
 
     def write(self, data: bytes) -> int:
+        print(f"[SerialService.write] {data!r}", flush=True)
         if not self._is_open or not self._worker:
             self.errorText.emit("Serial not open.")
             return 0

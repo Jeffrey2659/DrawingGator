@@ -27,6 +27,13 @@ class Presenter:
         self.streamer.finished.connect(self._on_finished)
         self.streamer.pausedChanged.connect(self._on_paused_changed)
 
+        #used for logging received data from the device
+        self.s.dataReceived.connect(self._on_rx_log)
+        #used for debugging raw received data
+        self.s.dataReceived.connect(lambda b: print(f"[RX RAW] {b!r}", flush=True))
+        #manual send
+        self.v.on_manual_send = self.handle_manual_send
+        
         # View -> Presenter
         self.v.on_refresh_clicked = self.handle_refresh
         self.v.on_connect_clicked = self.handle_connect_toggle
@@ -125,3 +132,34 @@ class Presenter:
     def _on_paused_changed(self, paused: bool):
         # Hook for toggling UI when you add Pause/Resume buttons
         pass
+    def handle_manual_send(self, text: str):
+        print(f"[manual] got: {text!r}", flush=True)
+        if not self.s.is_open():
+            self.v.warn("Not connected to a device.")
+            return
+        # GRBL expects CRLF; ensure it’s appended exactly once
+        cmd = text.strip()
+        if not cmd:
+            return
+        if not cmd.endswith("\r") and not cmd.endswith("\n"):
+            cmd += "\r\n"
+        elif cmd.endswith("\n") and not cmd.endswith("\r\n"):
+            # normalize lone LF to CRLF
+            cmd = cmd[:-1] + "\r\n"
+
+        self.v.log(f">> {text}")  # echo to log pane
+        try:
+            n =  self.s.write(cmd.encode("ascii", errors="ignore"))
+            print(f"[manual] queued {n} bytes", flush=True)
+        except Exception as e:
+            self.v.warn(f"Send failed: {e}")
+
+    def _on_rx_log(self, data: bytes):
+        """Low-level logger for all serial RX data (GRBL responses)."""
+        try:
+            text = data.decode("ascii", errors="replace")
+        except Exception:
+            text = repr(data)
+        # Normalize newlines for clean display
+        text = text.replace('\r\n', '\n').replace('\r', '\n')
+        self.v.log(text)

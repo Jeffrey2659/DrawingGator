@@ -1,7 +1,8 @@
 # view_qt.py
 from typing import Optional, List
-from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QProgressBar
+from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QProgressBar, QDockWidget, QWidget, QHBoxLayout, QLineEdit, QPushButton
 from DG_UI import Ui_MainWindow
+from PyQt6.QtCore import Qt
 
 class ViewQt(QMainWindow, Ui_MainWindow):
     # Presenter assigns these callables at runtime:
@@ -18,6 +19,27 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.setWindowTitle("Drawing Gator")
 
+
+        #manual command dock
+        dock = QDockWidget("Manual Command", self)
+        dock.setObjectName("ManualCommandDock")
+        dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea | Qt.DockWidgetArea.TopDockWidgetArea)
+
+        w = QWidget(dock)
+        lay = QHBoxLayout(w)
+        lay.setContentsMargins(8, 8, 8, 8)
+
+        self.manualLine = QLineEdit(w)
+        self.manualLine.setPlaceholderText("Type a G-code, e.g. G0 X10 Y10 (Enter to send)")
+        self.manualSendBtn = QPushButton("Send", w)
+
+        lay.addWidget(self.manualLine, 1)
+        lay.addWidget(self.manualSendBtn, 0)
+
+        w.setLayout(lay)
+        dock.setWidget(w)
+        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
+
         # Status progress bar (no .ui changes needed)
         self._progress = QProgressBar(self)
         self._progress.setMinimum(0)
@@ -26,6 +48,10 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self._progress.setTextVisible(True)
         self.statusbar.addPermanentWidget(self._progress, 1)
 
+
+        # manual send
+
+        self.on_manual_send = None
         # UI -> Presenter callbacks
         #if no lambda then it calls the function immediately instead of waiting for the button to be clicked
         #the lambda creates an anonymous function that calls the function when the button is clicked
@@ -34,6 +60,10 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self.sendGcode.clicked.connect(lambda: self.on_send_clicked and self.on_send_clicked())
         self.actionUpload_Gcode.triggered.connect(lambda: self.on_upload_clicked and self.on_upload_clicked())
 
+
+        # manual present callbacks
+        self.manualLine.returnPressed.connect(self._send_manual_from_line)
+        self.manualSendBtn.clicked.connect(self._send_manual_from_button)
         # If you add Pause/Resume buttons in .ui (names: pauseBtn/resumeBtn), hook them:
         # self.pauseBtn.clicked.connect(lambda: self.on_pause_clicked and self.on_pause_clicked())
         # self.resumeBtn.clicked.connect(lambda: self.on_resume_clicked and self.on_resume_clicked())
@@ -77,3 +107,14 @@ class ViewQt(QMainWindow, Ui_MainWindow):
             return int(txt)
         except ValueError:
             return 115200
+    def _send_manual_from_line(self):
+        txt = self.manualLine.text().strip()
+        if txt and self.on_manual_send:
+            self.on_manual_send(txt)
+            self.manualLine.clear()
+
+    def _send_manual_from_button(self):
+        txt = self.manualLine.text().strip()
+        if txt and self.on_manual_send:
+            self.on_manual_send(txt)
+            self.manualLine.clear()
