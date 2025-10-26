@@ -45,7 +45,7 @@ class VpypeRunner(QObject):
         self._proc = None
         self._log = []
         
-
+    
    
 
     def run_svg_to_gcode(self, svg_path: str, out_path: str | None = None):
@@ -93,4 +93,3 @@ class VpypeRunner(QObject):
         ok = (code == 0)
         self.finished.emit(ok, out_path if ok else "", "".join(self._log))
         self._proc = None
-    
