@@ -23,3 +23,7 @@ Sara Kola
 
 2. MacOS: ```brew install potrace```
 3. Ubuntu: ```sudo apt install potrace```
+
+
+# NOTE:
+Known bug as of now: When simulating the the svg and following the animation sometimes the "pen" does not lift but continues to draw the lines. 
