@@ -42,9 +42,37 @@ In the simplest terms, the flow of the service is the following:
 - Flexible point following of any count
   - Only limited by step count (customizable count in code)
 
+**UI**
+- Rudimentary UI
+  - Uses Model View Presenter Architecture:
+    - Model: Handles logic of UI components and different libraries integrated into the application
+    - View: This section handles the layout of the GUI components and stores any triggers from the user
+     - Presenter: Communicates between View and Model, to send the triggers from view to appropraite function in Model and communicates the response that needs to be reflected in view
+  - Basic UI components to load image and gcode
+    - Parses and cleans G code
+  - Text view box to see responses from serial port and view data being sent
+    - Logging responses and errors from microntroller motion library
+    - Logging G Code lines
+  - Configuration boxes for serial 
+    - Configure Com Port
+    - Configure Baud Rate
+  - Functionality to send indiviudal serial commands
+      - Used Pyserial to establish serial connection and process data between devices
+  - Status Bar to show G code lines sent
+  - Functionality for whole file G code sending
+
 ## Known Bugs & Correction Statuses
 
 <!-- ADD YOUR OWN BUG SECTION BELOW -->
 **Simulator**
 - ~~Simulator linear path gets dragged to line above drawing space~~ (Fixed)
 - Does not identify impossible paths prior to generating, so can fail to reach goal and cap datapoints
+
+
+**UI**
+- The text in the view box from the serial port is not properly formatted
+- The status bar for the Lines sent does not update after a new g code file is loaded in over the exsisitng one
+- The svg to gcode conversion does not complete fully
+
+**Serial Communication**
+- The buffer is immediately filled with data and does not wait for the "okay" responses from the microcontroller
