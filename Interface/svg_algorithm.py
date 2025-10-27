@@ -36,23 +36,6 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
         if os.path.exists(img_path):    
             os.remove(img_path)
 
-    # overwrite the size with a4 paper size
-    # keeping in mind DPI 
-    a4_width_px = 794
-    a4_height_px = 1123
-
-    # read the file for svg
-    with open(output_path, 'r') as file:
-        svg_data = file.read()
-
-    # replace the width and height in the svg data
-    svg_data = svg_data.replace(f'width="{width}"', f'width="{a4_width_px}"')
-    svg_data = svg_data.replace(f'height="{height}"', f'height="{a4_height_px}"')
-
-    # write the modified svg data back to the file
-    with open(output_path, 'w') as file:
-        file.write(svg_data)
-
     # list of plack pixels and coordinates we need 
     pixels = np.array(img)
     lines = [(x, y) for y in range(height) for x in range(width) if pixels[y, x] == 0]
@@ -161,9 +144,9 @@ def animation_simulation(strokes):
 if __name__ == "__main__":
     #input_path = "images/shapes.png"
     #input_path = "drawinggator.jpeg"
-    input_path = "images/simple.png"
+    #input_path = "images/simple.png"
     #input_path = "images/roses.jpg"
-    #input_path = "images/testing.png"
+    input_path = "images/testing.png"
     output_path = "output.svg"
     potrace_executable = "potrace"
 
