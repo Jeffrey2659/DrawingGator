@@ -76,3 +76,6 @@ In the simplest terms, the flow of the service is the following:
 
 **Serial Communication**
 - The buffer is immediately filled with data and does not wait for the "okay" responses from the microcontroller
+
+**Simulation Output**
+- In some tested files there seems to be a "pen not lifted" and it drags the line when it draws. 
