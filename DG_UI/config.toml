@@ -1,0 +1,12 @@
+[gwrite]
+default_profile = "grbl"
+
+[gwrite.grbl]
+unit = "mm"
+absolute_coordinates = true
+pen_up_command   = "M3 S0"
+pen_down_command = "M3 S90"
+travel_speed = 3000
+draw_speed   = 1200
+header = ["G21","G90","G92 X0 Y0","M3 S0"]
+footer = ["M3 S0","M5","M2"]
