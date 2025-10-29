@@ -126,6 +126,6 @@ class ViewQt(QMainWindow, Ui_MainWindow):
             self.on_manual_send(txt)
             self.manualLine.clear()
     def _ask_open_svg(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Open SVG", "", "SVG Files (*.svg)")
+        path, _ = QFileDialog.getOpenFileName(self, "Open Image or SVG", "", "Image or SVG Files (*.svg *.png *.jpg *.jpeg *.bmp))")
         if path and self.on_upload_svg:
             self.on_upload_svg(path)

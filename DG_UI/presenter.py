@@ -6,6 +6,9 @@ from gcode_streamer import GCodeStreamer
 from vpype_runner import VpypeRunner
 from pathlib import Path
 
+# load the algorithm
+from Interface.svg_algorithm import conversion_svg
+
 class Presenter:
     """
     The Presenter expects the 'view' to provide:
@@ -173,8 +176,28 @@ class Presenter:
         # Normalize newlines for clean display
         text = text.replace('\r\n', '\n').replace('\r', '\n')
         self.v.log(text)
+
         
     def handle_upload_svg(self, svg_path: str):
+        self.v.log(f"Uploaded File: {svg_path}")
+        ext = Path(svg_path).suffix.lower()
+
+        if ext in [".png", ".jpg", ".jpeg", ".bmp"]:   
+            self.v.log("Conversion has started")
+            try:
+                _,_,_, output_svg = conversion_svg(svg_path)
+                svg_path = output_svg
+                self.v.log("Yay!")
+            except Exception as e:
+                self.v.warn(f"SVG conversion failed: {e}")
+                return
+        # Now convert the SVG to G-code using vpype
+        self.v.log("Starting vpype conversion to G-code…")
+        out_path = str(Path(svg_path).with_suffix(".gcode"))
+        self.v.log(f"G-code will be saved to: {Path(out_path).resolve()}")
+        self._vp.run_svg_to_gcode(svg_path, out_path=out_path)
+                                 
+        '''
         self.v.log(f"Converting with vpype: {svg_path}\n")
         # Decide output .gcode location (temp is fine)
         out_path = str(Path(svg_path).with_suffix(".gcode"))
@@ -185,6 +208,8 @@ class Presenter:
         #extra paramters to addd later  pen_up_z=5.0,
                                  # pen_down_z=0.0,
                                  # feed=2000
+'''
+
      #  when vpype finishes, load the file into the model
     def _on_vpype_finished(self, ok: bool, gcode_path: str, log_text: str):
         if log_text:
