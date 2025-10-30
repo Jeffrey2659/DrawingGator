@@ -117,7 +117,7 @@ def animation_simulation(strokes):
         for ln in lines:
             ln.set_data([], [])
         return lines
-
+    
     def update(frame):
         stroke_idx, point_idx = frame
         stroke = strokes[stroke_idx]
@@ -138,6 +138,37 @@ def animation_simulation(strokes):
     )
 
     plt.show() 
+
+# display the svg drawing, because animation is not working when called in the UI  
+def display_svg(strokes):
+    # a4 size in inches
+    a4_width_in = 8.27   
+    a4_height_in = 11.69 
+
+    fig, ax = plt.subplots(figsize=(a4_width_in, a4_height_in))
+    ax.set_aspect('equal')
+    ax.invert_yaxis()
+    
+    all_points = [p for stroke in strokes for p in stroke]
+    xs, ys = zip(*all_points)
+
+    x_range = max(xs) - min(xs) if max(xs) != min(xs) else 1
+    y_range = max(ys) - min(ys) if max(ys) != min(ys) else 1
+    pad_x = x_range * 0.05
+    pad_y = y_range * 0.05
+    
+    ax.set_xlim(min(xs) - pad_x, max(xs) + pad_x)
+    ax.set_ylim(min(ys) - pad_y, max(ys) + pad_y)
+    ax.axis('off')
+    
+    # Draw all strokes
+    for stroke in strokes:
+        if stroke:
+            xs_stroke = [p[0] for p in stroke]
+            ys_stroke = [p[1] for p in stroke]
+            ax.plot(xs_stroke, ys_stroke, 'k-', linewidth=2)
+
+    plt.show()
 ##############################################################################################
 
 # add main

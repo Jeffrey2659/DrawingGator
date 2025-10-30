@@ -6,8 +6,8 @@ from gcode_streamer import GCodeStreamer
 from vpype_runner import VpypeRunner
 from pathlib import Path
 
-# load the algorithm
-from Interface.svg_algorithm import conversion_svg
+# load the algorithm and all its functions
+from Interface.svg_algorithm import conversion_svg, extract_coordinates, animation_simulation, display_svg
 
 class Presenter:
     """
@@ -182,12 +182,19 @@ class Presenter:
         self.v.log(f"Uploaded File: {svg_path}")
         ext = Path(svg_path).suffix.lower()
 
+        # check the extensions of the file loaded
         if ext in [".png", ".jpg", ".jpeg", ".bmp"]:   
             self.v.log("Conversion has started")
             try:
                 _,_,_, output_svg = conversion_svg(svg_path)
                 svg_path = output_svg
                 self.v.log("Yay!")
+
+                # get the animation code
+                strokes = extract_coordinates(svg_path)
+                self.v.log(f"extracted {len(strokes)}")
+                animation_simulation(strokes)
+                display_svg(strokes)
             except Exception as e:
                 self.v.warn(f"SVG conversion failed: {e}")
                 return
