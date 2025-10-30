@@ -193,8 +193,12 @@ class Presenter:
                 # get the animation code
                 strokes = extract_coordinates(svg_path)
                 self.v.log(f"extracted {len(strokes)}")
-                animation_simulation(strokes)
-                display_svg(strokes)
+                # call the widget to show svg
+                if hasattr(self.v, 'mpl_widget'):
+                    self.v.mpl_widget.plot_svg(strokes)
+
+                #animation_simulation(strokes)
+                #display_svg(strokes)
             except Exception as e:
                 self.v.warn(f"SVG conversion failed: {e}")
                 return

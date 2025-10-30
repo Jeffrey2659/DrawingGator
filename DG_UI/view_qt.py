@@ -3,6 +3,7 @@ from typing import Optional, List
 from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QProgressBar, QDockWidget, QWidget, QHBoxLayout, QLineEdit, QPushButton
 from DG_UI import Ui_MainWindow
 from PyQt6.QtCore import Qt
+from matplotlib_widget import MatplotlibWidget
 
 class ViewQt(QMainWindow, Ui_MainWindow):
     # Presenter assigns these callables at runtime:
@@ -20,12 +21,25 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.setWindowTitle("Drawing Gator")
 
-
         #manual command dock
         dock = QDockWidget("Manual Command", self)
         dock.setObjectName("ManualCommandDock")
         dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea | Qt.DockWidgetArea.TopDockWidgetArea)
 
+
+        # add the matplotlib widget for svg display
+        self.mpl_widget = MatplotlibWidget()
+        preview_dock = QDockWidget("SVG Preview", self)
+        preview_dock.setObjectName("SVGPreviewDock")
+        preview_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.LeftDockWidgetArea)
+        preview_dock.setWidget(self.mpl_widget)
+        preview_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable | 
+                                  QDockWidget.DockWidgetFeature.DockWidgetFloatable |
+                                  QDockWidget.DockWidgetFeature.DockWidgetClosable)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, preview_dock)
+        
+        # Set initial size for the dock (optional but helpful)
+        preview_dock.setMinimumWidth(300)
         w = QWidget(dock)
         lay = QHBoxLayout(w)
         lay.setContentsMargins(8, 8, 8, 8)

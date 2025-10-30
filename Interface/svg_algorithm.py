@@ -70,19 +70,28 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
                     ### NOT NEEDED BUT USED FOR TESTING PURPOSES ###
 # extract the coordinates
 def extract_coordinates(svg_path, samples=50):
+    # FIXED STOKES 
     # using the svg library to extract paths 
-    paths, _ = svg2paths(svg_path)
+    paths, attributes = svg2paths(svg_path)
     all_strokes = []
 
     for path in paths:
         stroke = []
+        prev_end = None
         for segment in path:
+            start = segment.point(0)
+            end = segment.point(1)
+            if prev_end is not None and abs(start - prev_end) > 1e-6:
+                if stroke:
+                    all_strokes.append(stroke)
+                stroke = []
             for t in np.linspace(0, 1, samples):
                 point = segment.point(t)
                 stroke.append((point.real, point.imag))
-        all_strokes.append(stroke)
+            prev_end = end
+        if stroke:
+            all_strokes.append(stroke)
     return all_strokes
-
 
 # Adding a simulation to see how the drawing would look like
 def animation_simulation(strokes):
@@ -174,10 +183,10 @@ def display_svg(strokes):
 # add main
 if __name__ == "__main__":
     #input_path = "images/shapes.png"
-    #input_path = "drawinggator.jpeg"
+    input_path = "images/drawinggator.jpeg"
     #input_path = "images/simple.png"
     #input_path = "images/roses.jpg"
-    input_path = "images/testing.png"
+    #input_path = "images/testing.png"
     output_path = "output.svg"
     potrace_executable = "potrace"
 
