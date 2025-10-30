@@ -84,8 +84,8 @@ In the simplest terms, the flow of the service is the following:
 <!-- ADD YOUR OWN BUG SECTION BELOW -->
 **Simulator**
 - ~~Simulator linear path gets dragged to line above drawing space~~ (Fixed)
-- Does not identify impossible paths prior to generating, so can fail to reach goal and cap datapoints
-
+- ~~Does not identify impossible paths prior to generating, so can fail to reach goal and cap datapoints~~ (Fixed, halts operation on point no longer making progress)
+- Circular path may not generate if center is between start and goal point
 
 **UI**
 - The text in the view box from the serial port is not properly formatted
