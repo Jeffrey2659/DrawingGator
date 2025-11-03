@@ -21,5 +21,5 @@ void setup() {
 void loop() {
   // For now, just toggle LED when input is gotten from UART
 
-  bool ready = gCodeReceive();
+  bool ready = receiveGCode();
 }
