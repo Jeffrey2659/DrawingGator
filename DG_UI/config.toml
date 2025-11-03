@@ -10,3 +10,4 @@ segment = "M3 S90\nG01 F1200 X{x:.4f} Y{y:.4f}\n"           # Pen down, draw spe
 layer_end = ""
 document_end = "M3 S0\nM5\nM2\n"
 info = "GRBL profile with feed rate switching"
+

@@ -1,10 +1,13 @@
 # presenter.py
+from PyQt6.QtCore import QObject, QThread, pyqtSignal
 from typing import Optional
 from model import GCodeModel
+from svg_algorithm import conversion_svg,find_potrace
 from serial_service import SerialService
 from gcode_streamer import GCodeStreamer
 from vpype_runner import VpypeRunner
 from pathlib import Path
+import os
 
 class Presenter:
     """
@@ -25,6 +28,9 @@ class Presenter:
         # This checks if the view has an attribute 'on_upload_svg' and if so, assigns the presenter's 'handle_upload_svg' method to it.
         if hasattr(self.v, "on_upload_svg"):
             self.v.on_upload_svg = self.handle_upload_svg
+
+        #for general image upload
+        self.v.on_upload_image = self._on_upload_image
 
         self._vp = VpypeRunner()
         self._vp.finished.connect(self._on_vpype_finished)
@@ -200,3 +206,45 @@ class Presenter:
                 self.v.set_progress(0, max(count, 1))
         except Exception as e:
             self.v.warn(f"Failed to load G-code: {e}")
+
+    def _on_upload_image(self, img_path: str):
+        """1) Raster → SVG (potrace), then kick off vpype."""
+        self.v.log(f"Image selected: {img_path}")
+        # Choose output beside image
+        svg_out = str(Path(img_path).with_suffix(".svg"))
+
+        #Need to change this to be robust
+        #CHANGE THIS 
+        potrace_bin = r"C:\Program Files\Potrace\potrace.exe"
+
+        # Run in a worker thread so the UI stays responsive
+        t = QThread(self.v)
+        class _Worker(QObject):
+            done = pyqtSignal(object, object)  # (err, svg_path)
+            def run(self_nonlocal):
+                try:
+                    # conversion_svg will raise if potrace not found/returns nonzero
+                    _, _, _, svg_path = conversion_svg(img_path, svg_out, potrace_bin)
+                    self_nonlocal.done.emit(None, svg_path)
+                except Exception as e:
+                    self_nonlocal.done.emit(e, None)
+
+        w = _Worker()
+        w.moveToThread(t)
+        t.started.connect(w.run)
+        w.done.connect(lambda err, svg: self._after_svg(err, svg, t, w))
+        t.start()
+    def _after_svg(self, err, svg_path, t, w):
+        t.quit(); t.wait()
+        # (Let GC collect w/t)
+        if err:
+            self.v.warn(f"SVG conversion failed: {err}")
+            return
+        self.v.log(f"SVG created: {svg_path}")
+        # 2) SVG → G-code via vpype
+        gcode_out = str(Path(svg_path).with_suffix(".gcode"))
+        self._vp.run_svg_to_gcode(svg_path, gcode_out)
+
+
+
+    

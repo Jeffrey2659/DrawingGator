@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "defaults_polar.h": "c"
+    },
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": []
+}

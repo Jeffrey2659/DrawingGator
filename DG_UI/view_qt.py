@@ -14,6 +14,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
     on_pause_clicked = None
     on_resume_clicked = None
     on_upload_svg = None
+    on_upload_image = None
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -75,6 +76,10 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         # self.pauseBtn.clicked.connect(lambda: self.on_pause_clicked and self.on_pause_clicked())
         # self.resumeBtn.clicked.connect(lambda: self.on_resume_clicked and self.on_resume_clicked())
 
+
+        #for image upload in general
+        self.actionUpload_Image.triggered.connect(self._ask_open_image)
+
     # Presenter -> View API
     def set_ports(self, ports: List[str]) -> None:
         self.portOpt.clear()
@@ -129,3 +134,14 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         path, _ = QFileDialog.getOpenFileName(self, "Open SVG", "", "SVG Files (*.svg)")
         if path and self.on_upload_svg:
             self.on_upload_svg(path)
+
+    # Do not need to work about ask_open_svg contradicting, this it should route to the appropriaite handler.
+    def _ask_open_image(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open Image",
+            "",
+            "Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff);;All Files (*)",
+        )
+        if path and self.on_upload_image:
+            self.on_upload_image(path)
