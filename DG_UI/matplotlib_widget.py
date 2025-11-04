@@ -28,7 +28,7 @@ class MatplotlibWidget(QWidget):
 ############ NR.2 --> ANIMATION SIMULATION ###################################
 
     # same function as in svg_algorithm.py 
-    def plot_svg(self, strokes):
+    def plot_svg(self, strokes, num_strokes = None):
         self.clear()
         self.ax = self.figure.add_subplot(111)
         self.ax.set_aspect('equal')
@@ -38,11 +38,15 @@ class MatplotlibWidget(QWidget):
         if not strokes or not any(strokes):
             return
         
+        # num strokes
+        if num_strokes is None:
+            num_strokes = len(strokes)
+        
         # Get all points for axis limits
         all_points = [p for stroke in strokes for p in stroke]
         if not all_points:
             return
-        
+
         xs, ys = zip(*all_points)
         
         # Add margin
@@ -60,6 +64,11 @@ class MatplotlibWidget(QWidget):
                 xs_stroke = [p[0] for p in stroke]
                 ys_stroke = [p[1] for p in stroke]
                 self.ax.plot(xs_stroke, ys_stroke, 'k-', linewidth=2)
+        
+        # adding a line that shows how many lines are in the image uploaded
+        self.figure.text(0.02, 0.98, f'Number of Strokes: {num_strokes}',
+                     ha = 'left', va = 'top',
+                     fontsize = 12, fontweight = 'bold')
         
         self.canvas.draw()
 

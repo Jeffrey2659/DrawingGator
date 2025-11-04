@@ -191,7 +191,7 @@ class Presenter:
                 self.v.log("Yay!")
 
                 # get the animation code
-                strokes = extract_coordinates(svg_path)
+                strokes, num_strokes = extract_coordinates(svg_path)
                 self.v.log(f"extracted {len(strokes)}")
                 # call the widget to show svg
                 if hasattr(self.v, 'mpl_widget'):
