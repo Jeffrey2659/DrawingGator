@@ -47,7 +47,7 @@ class VpypeRunner(QObject):
         
     
    
-
+    
     def run_svg_to_gcode(self, svg_path: str, out_path: str | None = None):
         svg = Path(svg_path)
         if not svg.exists():
