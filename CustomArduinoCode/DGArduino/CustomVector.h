@@ -22,10 +22,12 @@ struct KeyValueItem: public Printable {
   }
 };
 
-enum VecPrintFormat { VPF_HORIZ_FANCY, VPF_HORIZ_RAW, VPF_VERT_FANCY, VPF_VERT_RAW };
 
 template <typename T>
 class Vector : public Printable {
+public:
+  enum VecPrintFormat { VPF_HORIZ_FANCY, VPF_HORIZ_RAW, VPF_VERT_FANCY, VPF_VERT_RAW };
+private:
   T* data = nullptr;
   int size = 0;
   int cap = 1;
