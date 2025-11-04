@@ -1,5 +1,6 @@
 # app.py
-import sys
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from PyQt6.QtWidgets import QApplication
 from view_qt import ViewQt
 from presenter import Presenter

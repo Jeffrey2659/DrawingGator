@@ -2,13 +2,15 @@
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 from typing import Optional
 from model import GCodeModel
-from svg_algorithm import conversion_svg,find_potrace
 from serial_service import SerialService
 from gcode_streamer import GCodeStreamer
 from vpype_runner import VpypeRunner
 from pathlib import Path
-import os
 
+
+# load the algorithm and all its functions
+from Interface.svg_algorithm import conversion_svg, extract_coordinates, animation_simulation, display_svg
+import os
 class Presenter:
     """
     The Presenter expects the 'view' to provide:
@@ -31,7 +33,6 @@ class Presenter:
 
         #for general image upload
         self.v.on_upload_image = self._on_upload_image
-
         self._vp = VpypeRunner()
         self._vp.finished.connect(self._on_vpype_finished)
 
@@ -179,8 +180,40 @@ class Presenter:
         # Normalize newlines for clean display
         text = text.replace('\r\n', '\n').replace('\r', '\n')
         self.v.log(text)
+
         
     def handle_upload_svg(self, svg_path: str):
+        self.v.log(f"Uploaded File: {svg_path}")
+        ext = Path(svg_path).suffix.lower()
+
+        # check the extensions of the file loaded
+        if ext in [".png", ".jpg", ".jpeg", ".bmp"]:   
+            self.v.log("Conversion has started")
+            try:
+                _,_,_, output_svg = conversion_svg(svg_path)
+                svg_path = output_svg
+                self.v.log("Yay!")
+
+                # get the animation code
+                strokes, num_strokes = extract_coordinates(svg_path)
+                self.v.log(f"extracted {len(strokes)}")
+                # call the widget to show svg
+                if hasattr(self.v, 'mpl_widget'):
+                    self.v.mpl_widget.plot_svg(strokes)
+
+                #animation_simulation(strokes)
+                #display_svg(strokes)
+            except Exception as e:
+                self.v.warn(f"SVG conversion failed: {e}")
+                return
+        # Now convert the SVG to G-code using vpype
+        self.v.log("Starting vpype conversion to G-code…")
+        out_path = str(Path(svg_path).with_suffix(".gcode"))
+        #this line below is the only one add
+        self.v.log(f"G-code will be saved to: {Path(out_path).resolve()}")
+        self._vp.run_svg_to_gcode(svg_path, out_path=out_path)
+                                 
+        '''
         self.v.log(f"Converting with vpype: {svg_path}\n")
         # Decide output .gcode location (temp is fine)
         out_path = str(Path(svg_path).with_suffix(".gcode"))
@@ -191,6 +224,8 @@ class Presenter:
         #extra paramters to addd later  pen_up_z=5.0,
                                  # pen_down_z=0.0,
                                  # feed=2000
+'''
+
      #  when vpype finishes, load the file into the model
     def _on_vpype_finished(self, ok: bool, gcode_path: str, log_text: str):
         if log_text:
@@ -206,7 +241,6 @@ class Presenter:
                 self.v.set_progress(0, max(count, 1))
         except Exception as e:
             self.v.warn(f"Failed to load G-code: {e}")
-
     def _on_upload_image(self, img_path: str):
         """1) Raster → SVG (potrace), then kick off vpype."""
         self.v.log(f"Image selected: {img_path}")
@@ -244,7 +278,3 @@ class Presenter:
         # 2) SVG → G-code via vpype
         gcode_out = str(Path(svg_path).with_suffix(".gcode"))
         self._vp.run_svg_to_gcode(svg_path, gcode_out)
-
-
-
-    

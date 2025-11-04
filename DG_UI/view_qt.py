@@ -3,6 +3,7 @@ from typing import Optional, List
 from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QProgressBar, QDockWidget, QWidget, QHBoxLayout, QLineEdit, QPushButton
 from DG_UI import Ui_MainWindow
 from PyQt6.QtCore import Qt
+from matplotlib_widget import MatplotlibWidget
 
 class ViewQt(QMainWindow, Ui_MainWindow):
     # Presenter assigns these callables at runtime:
@@ -15,18 +16,30 @@ class ViewQt(QMainWindow, Ui_MainWindow):
     on_resume_clicked = None
     on_upload_svg = None
     on_upload_image = None
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
         self.setWindowTitle("Drawing Gator")
-
 
         #manual command dock
         dock = QDockWidget("Manual Command", self)
         dock.setObjectName("ManualCommandDock")
         dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea | Qt.DockWidgetArea.TopDockWidgetArea)
 
+
+        # add the matplotlib widget for svg display
+        self.mpl_widget = MatplotlibWidget()
+        preview_dock = QDockWidget("SVG Preview", self)
+        preview_dock.setObjectName("SVGPreviewDock")
+        preview_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.LeftDockWidgetArea)
+        preview_dock.setWidget(self.mpl_widget)
+        preview_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable | 
+                                  QDockWidget.DockWidgetFeature.DockWidgetFloatable |
+                                  QDockWidget.DockWidgetFeature.DockWidgetClosable)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, preview_dock)
+        
+        # Set initial size for the dock (optional but helpful)
+        preview_dock.setMinimumWidth(300)
         w = QWidget(dock)
         lay = QHBoxLayout(w)
         lay.setContentsMargins(8, 8, 8, 8)
@@ -75,12 +88,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         # If you add Pause/Resume buttons in .ui (names: pauseBtn/resumeBtn), hook them:
         # self.pauseBtn.clicked.connect(lambda: self.on_pause_clicked and self.on_pause_clicked())
         # self.resumeBtn.clicked.connect(lambda: self.on_resume_clicked and self.on_resume_clicked())
-
-
-        #for image upload in general
-        self.actionUpload_Image.triggered.connect(self._ask_open_image)
-
-    # Presenter -> View API
+        self.actionUpload_Image.triggered.connect(self._ask_open_image)    # Presenter -> View API
     def set_ports(self, ports: List[str]) -> None:
         self.portOpt.clear()
         for p in ports:
@@ -131,11 +139,9 @@ class ViewQt(QMainWindow, Ui_MainWindow):
             self.on_manual_send(txt)
             self.manualLine.clear()
     def _ask_open_svg(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Open SVG", "", "SVG Files (*.svg)")
+        path, _ = QFileDialog.getOpenFileName(self, "Open Image or SVG", "", "Image or SVG Files (*.svg *.png *.jpg *.jpeg *.bmp))")
         if path and self.on_upload_svg:
             self.on_upload_svg(path)
-
-    # Do not need to work about ask_open_svg contradicting, this it should route to the appropriaite handler.
     def _ask_open_image(self):
         path, _ = QFileDialog.getOpenFileName(
             self,

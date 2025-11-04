@@ -47,7 +47,7 @@ class VpypeRunner(QObject):
         
     
    
-    
+
     def run_svg_to_gcode(self, svg_path: str, out_path: str | None = None):
         svg = Path(svg_path)
         if not svg.exists():
@@ -66,9 +66,9 @@ class VpypeRunner(QObject):
         if not cfg_path:
             self.finished.emit(False, "", "config.toml not found (looked in standard locations).")
             return
-        if cfg_path:
+         if cfg_path:
             print(f"Using config: {cfg_path}")
-            print(f"Config contents:\n{cfg_path.read_text()}")        
+            print(f"Config contents:\n{cfg_path.read_text()}") 
         program = "vpype"
         args = [
             "--config", cfg_path.as_posix(),         # <-- ensure string
