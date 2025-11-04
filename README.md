@@ -39,8 +39,12 @@ In the simplest terms, the flow of the service is the following:
 - Path making (with replacable algorithms)
   - `GREEDY` - Only chooses best next step, no consideration for looks
   - `LINE_FOLLOW` - Tries to make best next step, equally weighting line dist and goal dist
+  - `CIRCULAR` - Makes the shortest path arc around a given third point from the start to the end
 - Flexible point following of any count
   - Only limited by step count (customizable count in code)
+- Leg-based rather than point-based simulation
+  - Allows for each line of the simulator to use a different algorithm (matches G-Code more closely)
+- Now allows for more than 1 step in each motor direction (up to 2 in either direction works best thus far)
 
 **UI**
 - Rudimentary UI
@@ -60,6 +64,13 @@ In the simplest terms, the flow of the service is the following:
       - Used Pyserial to establish serial connection and process data between devices
   - Status Bar to show G code lines sent
   - Functionality for whole file G code sending
+
+**Arduino**
+- Custom Vector implementation to store GCode instruction temporarily
+- UART Parsing of GCode into key-value pairs of char and double
+- Validation of GCode commands with referenced table of intended arguments
+- Responses to UART with debugging information
+- Transferred algorithm functions and structure to Arduino code
 
 # Libraries used for the svg_algorithm.py
 1. Pillow: Image Processing
@@ -84,8 +95,8 @@ In the simplest terms, the flow of the service is the following:
 <!-- ADD YOUR OWN BUG SECTION BELOW -->
 **Simulator**
 - ~~Simulator linear path gets dragged to line above drawing space~~ (Fixed)
-- Does not identify impossible paths prior to generating, so can fail to reach goal and cap datapoints
-
+- ~~Does not identify impossible paths prior to generating, so can fail to reach goal and cap datapoints~~ (Fixed, halts operation on point no longer making progress)
+- Circular path may not generate if center is between start and goal point
 
 **UI**
 - The text in the view box from the serial port is not properly formatted
