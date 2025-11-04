@@ -88,7 +88,9 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         # If you add Pause/Resume buttons in .ui (names: pauseBtn/resumeBtn), hook them:
         # self.pauseBtn.clicked.connect(lambda: self.on_pause_clicked and self.on_pause_clicked())
         # self.resumeBtn.clicked.connect(lambda: self.on_resume_clicked and self.on_resume_clicked())
-        self.actionUpload_Image.triggered.connect(self._ask_open_image)    # Presenter -> View API
+        #self.actionUpload_Image.triggered.connect(self._ask_open_image)    # Presenter -> View API
+
+
     def set_ports(self, ports: List[str]) -> None:
         self.portOpt.clear()
         for p in ports:
@@ -139,15 +141,21 @@ class ViewQt(QMainWindow, Ui_MainWindow):
             self.on_manual_send(txt)
             self.manualLine.clear()
     def _ask_open_svg(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Open Image or SVG", "", "Image or SVG Files (*.svg *.png *.jpg *.jpeg *.bmp))")
+        path, _ = QFileDialog.getOpenFileName(
+        self,
+        "Open Image or SVG",
+        "",
+        "Image or SVG Files (*.svg *.png *.jpg *.jpeg *.bmp *.tif *.tiff);;All Files (*)",
+    )
         if path and self.on_upload_svg:
             self.on_upload_svg(path)
-    def _ask_open_image(self):
-        path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Open Image",
-            "",
-            "Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff);;All Files (*)",
-        )
-        if path and self.on_upload_image:
-            self.on_upload_image(path)
+
+    # def _ask_open_image(self):
+    #     path, _ = QFileDialog.getOpenFileName(
+    #         self,
+    #         "Open Image",
+    #         "",
+    #         "Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff);;All Files (*)",
+    #     )
+    #     if path and self.on_upload_image:
+    #         self.on_upload_image(path)
