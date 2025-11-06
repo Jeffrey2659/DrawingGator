@@ -1,4 +1,5 @@
 #include "CustomVector.h"
+#include "StateHolder.h"
 
 
 #ifndef GCODE_HANDLER
@@ -32,8 +33,15 @@ private:
   const char back_space = '\b';
   const char delete_key = 0x7f;
   Vector<char> curCommand;
+  StateHolder* stateHolderPtr = nullptr;
 public:
-
+  GCodeHandler() {};
+  GCodeHandler(StateHolder& newStateHolder) {
+    stateHolderPtr = &newStateHolder;
+  }
+  void setStateHolder(StateHolder& newStateHolder) {
+    stateHolderPtr = &newStateHolder;
+  }
   Vector<KeyValueItem<char, double>> parseGCode(Vector<char> commandChars) {
     bool justSawSpace = true;
     unsigned int dataBufferIndex = 0;
@@ -74,7 +82,7 @@ public:
   }
 
   // Handles parsing and performing the g-code 
-  bool executeGCode(Vector<KeyValueItem<char, double>> commandPairs) {
+  bool translateGCode(Vector<KeyValueItem<char, double>> commandPairs) {
     commandPairs.setPrintFormat(Vector<KeyValueItem<char, double>>::VPF_VERT_FANCY); // Just stylistic choice
     Serial.println(commandPairs);
 
@@ -165,7 +173,7 @@ public:
         Serial.print(">> ");
         Serial.println(curCommand.setPrintFormat(Vector<char>::VPF_HORIZ_RAW));
         Vector<KeyValueItem<char, double>> commandPairs = parseGCode(curCommand);
-        executeGCode(commandPairs);
+        translateGCode(commandPairs);
         curCommand.clear();
       } else if (data == back_space || data == delete_key) { // Putty can use either, mine uses delete key, better to have both I say
         curCommand.removeLast();
@@ -175,11 +183,5 @@ public:
     }
   }
 };
-
-
-
-
-
-
 
 #endif // GCODE_HANDLER
