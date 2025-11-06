@@ -8,10 +8,10 @@
 class StateHolder {
 public:
   enum MOVE_STATE {
-    STOPPED,
-    HALTED,
-    IDLE,
-    MOVING
+    STOPPED,    // Needs specific signal to idle again
+    HALTED,     // Waits for user input
+    IDLE,       // Can move, just not anything queued
+    MOVING      // Actively moving, can be cancelled
   };
   enum SERVO_STATE {
     PEN_DOWN,
