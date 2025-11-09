@@ -79,7 +79,7 @@ In the simplest terms, the flow of the service is the following:
 4. matplotlib + svgpathtools: for parsing and plotting the lines
 
 # Run the following command:
-```pip install pillow numpy svgwrite matplotlib svgpathtools```
+```pip install pillow numpy svgwrite matplotlib svgpathtools PyQt6 serial serialtools lxml```
 
 **For the case of potrace since it cannot be installed through the command line:**
 1. Windows:
