@@ -3,9 +3,8 @@
 #include "GCodeHandler.h"
 
 bool LED_on = false;
-Point curPos;
-LegData curLeg;
-GCodeHandler gch;
+StateHolder sh;
+GCodeHandler gch(sh);
 
 void setup() {
   // Start serial communication on USB with following config:
@@ -13,7 +12,7 @@ void setup() {
   // 8 data bits
   // odd parity
   // 1 stop bit
-  Serial.begin(9600, SERIAL_8O1);
+  Serial.begin(9600, SERIAL_8N1);
 
   // Initialize internal LED (already defined)
   pinMode(LED_BUILTIN, OUTPUT);
@@ -21,6 +20,7 @@ void setup() {
 
 void loop() {
   // For now, just toggle LED when input is gotten from UART
-
   bool ready = gch.receiveGCode();
+
+  
 }

@@ -1,11 +1,11 @@
-
+#include <Printable.h>
 
 #ifndef ALGO_ITEMS
 #define ALGO_ITEMS
 
-enum Algorithm { GREEDY, LINE_FOLLOW, CIRCULAR };
+enum Algorithm { OVERWRITE, GREEDY, LINE_FOLLOW, CIRCULAR };
 
-struct Point {
+struct Point : public Printable {
   double X;
   double Y;
   Point() {
@@ -43,30 +43,66 @@ struct Point {
       this->Y / scalar
     );
   }
+  size_t printTo(Print& p) const {
+    size_t n = 0;
+  
+    n += p.print("(X=");
+    n += p.print(this->X);
+    n += p.print(", Y=");
+    n += p.print(this->Y);
+    n += p.print(")");
+    return n;
+  }
 };
 
-struct LegData {
+struct LegData : public Printable {
   Point start;
   Point goal;
   Point center;
   Algorithm algo;
+  bool valid;
   LegData() {
     start = Point(0, 0);
     goal = Point(0, 0);
     center = Point(0, 0);
     algo = GREEDY;
+    valid = false;
   }
   LegData(double sx, double sy, double gx, double gy, Algorithm alg) {
     start = Point(sx, sy);
     goal = Point(gx, gy);
     center = Point(0, 0);
     algo = alg;
+    valid = true;
   }
   LegData(double sx, double sy, double gx, double gy, double cx, double cy, Algorithm alg) {
     start = Point(sx, sy);
     goal = Point(gx, gy);
     center = Point(cx, cy);
     algo = alg;
+    valid = true;
+  }
+  size_t printTo(Print& p) const {
+    size_t n = 0;
+
+    if (!this->valid) {
+      p.print("{ valid_pt=false }");
+      return n;
+    }
+
+    n += p.print("{ start=");
+    n += p.print(this->start);
+    n += p.print(", goal=");
+    n += p.print(this->goal);
+    if (this->algo == CIRCULAR) {
+      n += p.print(", center=");
+      n += p.print(this->center);
+    }
+    n += p.print(", algo=");
+    n += p.print(this->algo);
+    n += p.print(" }");
+
+    return n;
   }
 };
 

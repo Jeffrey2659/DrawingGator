@@ -1,5 +1,7 @@
 #include "CustomVector.h"
+#include "AlgorithmItems.h"
 #include "StateHolder.h"
+#include "ErrorResp.h"
 
 
 #ifndef GCODE_HANDLER
@@ -15,6 +17,7 @@ public:
     GCOM_ARC_MOVE_PEN_DN = 3,
     GCOM_UNITS_INCHES = 20,
     GCOM_UNITS_MILLIS = 21,
+    GCOM_SEND_STORED_POS = 60,
     GCOM_ABSOLUTE_POS = 90,
     GCOM_RELATIVE_POS = 91,
     GCOM_SET_CUR_POS = 92
@@ -33,15 +36,49 @@ private:
   const char back_space = '\b';
   const char delete_key = 0x7f;
   Vector<char> curCommand;
-  StateHolder* stateHolderPtr = nullptr;
+  LegData storedLegData;
+  StateHolder* statesPtr;
+
+
+  bool hasArg(char key, Vector<KeyValueItem<char, double>> commandArgs) {
+    for (int i = 0; i < commandArgs.getSize(); i++) {
+      if (commandArgs[i].key == key) {
+        return true;
+      }
+    }
+    Serial.print("Missing arg: ");
+    Serial.println(key);
+    return false;
+  }
+  double getArg(char key, Vector<KeyValueItem<char, double>> commandArgs) {
+    for (int i = 0; i < commandArgs.getSize(); i++) {
+      if (commandArgs[i].key == key) {
+        return commandArgs[i].value;
+      }
+    }
+    return 0;
+  }
+
+  bool holdData(LegData legToStore) {
+    storedLegData = legToStore;
+    if (!statesPtr->hasNextLeg()) {
+      statesPtr->nextLeg = storedLegData;
+    } else {
+      sendErr(ERROR_ENUM::STATE_LEGS_FULL);
+    }
+  }
+
 public:
-  GCodeHandler() {};
-  GCodeHandler(StateHolder& newStateHolder) {
-    stateHolderPtr = &newStateHolder;
+  GCodeHandler(StateHolder& states) {
+    statesPtr = &states;
   }
-  void setStateHolder(StateHolder& newStateHolder) {
-    stateHolderPtr = &newStateHolder;
+
+  LegData getStoredLegData() {
+    LegData toRet = storedLegData;
+    storedLegData = LegData();
+    return toRet;
   }
+
   Vector<KeyValueItem<char, double>> parseGCode(Vector<char> commandChars) {
     bool justSawSpace = true;
     unsigned int dataBufferIndex = 0;
@@ -94,61 +131,114 @@ public:
       return false; // Uh oh!
     }
     int valAsInt = (int)(commandPairs[0].value);
+    double gx, gy, cx, cy, s;
     switch (commandPairs[0].key) {
       case 'G':
         switch (valAsInt) {
           case GCOM_LIN_MOVE_PEN_UP:
-            Serial.println("GCOM_LIN_MOVE_PEN_UP");
+            if (!hasArg('X', commandPairs)) { return false; }
+            if (!hasArg('Y', commandPairs)) { return false; }
+            gx = getArg('X', commandPairs);
+            gy = getArg('Y', commandPairs);
+            holdData(LegData(0.0, 0.0, gx, gy, LINE_FOLLOW));
             break;
+
           case GCOM_LIN_MOVE_PEN_DN:
-            Serial.println("GCOM_LIN_MOVE_PEN_DN");
+            if (!hasArg('X', commandPairs)) { return false; }
+            if (!hasArg('Y', commandPairs)) { return false; }
+            gx = getArg('X', commandPairs);
+            gy = getArg('Y', commandPairs);
+            holdData(LegData(0.0, 0.0, gx, gy, LINE_FOLLOW));
             break;
+
           case GCOM_ARC_MOVE_PEN_UP:
-            Serial.println("GCOM_ARC_MOVE_PEN_UP");
+            if (!hasArg('X', commandPairs)) { return false; }
+            if (!hasArg('Y', commandPairs)) { return false; }
+            if (!hasArg('I', commandPairs)) { return false; }
+            if (!hasArg('J', commandPairs)) { return false; }
+            gx = getArg('X', commandPairs);
+            gy = getArg('Y', commandPairs);
+            cx = getArg('I', commandPairs);
+            cy = getArg('J', commandPairs);
+            holdData(LegData(0.0, 0.0, gx, gy, cx, cy, CIRCULAR));
             break;
+
           case GCOM_ARC_MOVE_PEN_DN:
-            Serial.println("GCOM_ARC_MOVE_PEN_DN");
+            if (!hasArg('X', commandPairs)) { return false; }
+            if (!hasArg('Y', commandPairs)) { return false; }
+            if (!hasArg('I', commandPairs)) { return false; }
+            if (!hasArg('J', commandPairs)) { return false; }
+            gx = getArg('X', commandPairs);
+            gy = getArg('Y', commandPairs);
+            cx = getArg('I', commandPairs);
+            cy = getArg('J', commandPairs);
+            holdData(LegData(0.0, 0.0, gx, gy, cx, cy, CIRCULAR));
             break;
+
+          case GCOM_SEND_STORED_POS:
+            Serial.print(statesPtr->nextLeg);
+            break;
+
           case GCOM_UNITS_INCHES:
-            Serial.println("GCOM_UNITS_INCHES");
+            statesPtr->setInches();
             break;
+
           case GCOM_UNITS_MILLIS:
-            Serial.println("GCOM_UNITS_MILLIS");
+            statesPtr->setMillis();
             break;
+
           case GCOM_ABSOLUTE_POS:
-            Serial.println("GCOM_ABSOLUTE_POS");
+            statesPtr->setAbsolute();
             break;
+
           case GCOM_RELATIVE_POS:
-            Serial.println("GCOM_RELATIVE_POS");
+            statesPtr->setRelative();
             break;
+
           case GCOM_SET_CUR_POS:
-            Serial.println("GCOM_SET_CUR_POS");
+            if (!hasArg('X', commandPairs)) { return false; }
+            if (!hasArg('Y', commandPairs)) { return false; }
+            gx = getArg('X', commandPairs);
+            gy = getArg('Y', commandPairs);
+            holdData(LegData(0.0, 0.0, gx, gy, OVERWRITE));
             break;
+
           default:
             Serial.print("Error: G command number [");
             Serial.print(valAsInt);
             Serial.println("] does not exist.");
             return false;
             break;
+
         }
         break;
       case 'M':
         switch (valAsInt) {
           case MCOM_UNCOND_HALT:
-            Serial.println("MCOM_UNCOND_HALT");
+            statesPtr->moveState = StateHolder::HALTED; // May need changin?
             break;
+
           case MCOM_COND_HALT:
-            Serial.println("MCOM_COND_HALT");
+            Serial.println("MCOM_COND_HALT"); // TBD
             break;
+
           case MCOM_SET_SERVO:
-            Serial.println("MCOM_SET_SERVO");
+            if (!hasArg('S', commandPairs)) { return false; }
+            s = getArg('S', commandPairs);
+            if (s > 20) {                                     // May need changin?
+              statesPtr->penState = StateHolder::PEN_DOWN; 
+            } else {
+              statesPtr->penState = StateHolder::PEN_UP; 
+            }
             break;
+
           default:
             Serial.print("Error: M command number [");
             Serial.print(valAsInt);
             Serial.println("] does not exist.");
             return false;
             break;
+
         }
         break;
       default:
@@ -164,7 +254,7 @@ public:
 
   // returns true if ready to read gcode line
   bool receiveGCode() {
-    if (Serial.available() > 0) {
+    while (Serial.available() > 0) {
       // Because Vector doesn't typically exist here, will be much more interesting
       char data = Serial.read();
       Serial.print(data);
@@ -173,14 +263,16 @@ public:
         Serial.print(">> ");
         Serial.println(curCommand.setPrintFormat(Vector<char>::VPF_HORIZ_RAW));
         Vector<KeyValueItem<char, double>> commandPairs = parseGCode(curCommand);
-        translateGCode(commandPairs);
+        bool toRet = translateGCode(commandPairs);
         curCommand.clear();
+        return toRet; // parsing success
       } else if (data == back_space || data == delete_key) { // Putty can use either, mine uses delete key, better to have both I say
         curCommand.removeLast();
       } else {
         curCommand.append(data);
       }
     }
+    return false;
   }
 };
 

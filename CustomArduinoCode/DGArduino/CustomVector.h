@@ -22,7 +22,6 @@ struct KeyValueItem: public Printable {
   }
 };
 
-
 template <typename T>
 class Vector : public Printable {
 public:

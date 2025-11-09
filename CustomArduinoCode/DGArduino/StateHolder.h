@@ -5,8 +5,7 @@
 #ifndef STATE_HOLDER
 #define STATE_HOLDER
 
-class StateHolder {
-public:
+struct StateHolder {
   enum MOVE_STATE {
     STOPPED,    // Needs specific signal to idle again
     HALTED,     // Waits for user input
@@ -24,14 +23,15 @@ public:
     REL_INCHES,   // 10b
     REL_MILLIS    // 11b
   };
-private:
-  Point curLocation;
+
+  Point curPos;
   LegData curLeg;
+  LegData nextLeg;
   double curSpeed;
   UNIT_STATE unitState; 
   SERVO_STATE penState;
   MOVE_STATE moveState;
-public:
+
   StateHolder() {};
 
   // Unit setters (NOT YET TESTED)
@@ -64,7 +64,12 @@ public:
     return !isInches(); // opposites
   }
 
+  bool hasNextLeg() {
+    return nextLeg.valid; // opposites
+  }
 
+
+  // 
 };
 
 
