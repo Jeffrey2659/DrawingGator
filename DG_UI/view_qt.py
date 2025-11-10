@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QProgressBar,
 from DG_UI import Ui_MainWindow
 from PyQt6.QtCore import Qt
 from matplotlib_widget import MatplotlibWidget
+from color_widget import ColorWidget
 
 class ViewQt(QMainWindow, Ui_MainWindow):
     # Presenter assigns these callables at runtime:
@@ -62,7 +63,6 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self._progress.setValue(0)
         self._progress.setTextVisible(True)
         self.statusbar.addPermanentWidget(self._progress, 1)
-
 
         # manual send
 
@@ -143,3 +143,10 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         path, _ = QFileDialog.getOpenFileName(self, "Open Image or SVG", "", "Image or SVG Files (*.svg *.png *.jpg *.jpeg *.bmp))")
         if path and self.on_upload_svg:
             self.on_upload_svg(path)
+
+
+    def open_color_window(self):
+        self.color_window = ColorWidget(self)
+        # call the function to display the color on the image
+        self.color_window.color_sel.connect(self.mpl_widget.update_colors)
+        self.color_window.show()

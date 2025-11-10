@@ -76,6 +76,15 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuEdit.menuAction())
         self.menubar.addAction(self.menuFilter.menuAction())
 
+        # ADDING NEW BUTTON FOR POP UP WINDOW
+        self.colorButton = QtWidgets.QPushButton(parent=self.centralwidget)
+        self.colorButton.clicked.connect(self.open_color_window) # add to open pop up window
+        self.colorButton.setObjectName("Color")
+        # change color to be visible
+        self.colorButton.setStyleSheet("background-color: #ADD8E6; color: black")
+        self.verticalLayout_2.addWidget(self.colorButton)
+
+
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -94,3 +103,7 @@ class Ui_MainWindow(object):
         self.menuFilter.setTitle(_translate("MainWindow", "Filter"))
         self.actionUpload_Image.setText(_translate("MainWindow", "Upload Image"))
         self.actionUpload_Gcode.setText(_translate("MainWindow", "Upload Gcode"))
+
+        # ADDED COLOR BUTTON
+        self.colorButton.setText(_translate("MainWindow", "Color"))
+

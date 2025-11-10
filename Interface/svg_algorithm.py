@@ -34,6 +34,17 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
 
     image = image.convert('L')
     width, height = image.size
+
+    # convert from pixel to cm/inch to display
+    # using 96 DPI as that is a default
+    dpi = image.info.get('dpi', (96, 96))[0]
+    # inches
+    width_inch = width / dpi
+    height_inch = height / dpi
+    # cm
+    width_cm = width_inch * 2.54
+    height_cm = height_inch * 2.54
+
     # 0 - 255
     img = image.point(lambda x: 0 if x < 128 else 255, '1')
     # output that potrace expects
@@ -57,7 +68,7 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
 
     # return the lines and output_path in which is saved
     # also width and height for scaling purposes
-    return lines, width, height, output_path
+    return lines, width, height, width_inch, height_inch, width_cm, height_cm, output_path
 
     # get the size of the image
     # width, height = image.size
@@ -234,7 +245,7 @@ if __name__ == "__main__":
     output_path = "output.svg"
     potrace_executable = "potrace"
 
-    lines, width, height, output_path = conversion_svg(input_path, output_path, potrace_executable)
+    lines, width, height, width_inch, height_inch, width_cm, height_cm, output_path = conversion_svg(input_path, output_path, potrace_executable)
     convert_to_a4(output_path, output_path, width, height)
     # animation lines
     strokes, num_strokes = extract_coordinates(output_path, samples=30)

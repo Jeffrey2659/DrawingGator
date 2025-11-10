@@ -186,7 +186,8 @@ class Presenter:
         if ext in [".png", ".jpg", ".jpeg", ".bmp"]:   
             self.v.log("Conversion has started")
             try:
-                _,_,_, output_svg = conversion_svg(svg_path)
+                # added the lines for cm/inch
+                lines, width, height, width_inch, height_inch, width_cm, height_cm, output_svg = conversion_svg(svg_path)
                 svg_path = output_svg
                 self.v.log("Yay!")
 
@@ -195,7 +196,7 @@ class Presenter:
                 self.v.log(f"extracted {len(strokes)}")
                 # call the widget to show svg
                 if hasattr(self.v, 'mpl_widget'):
-                    self.v.mpl_widget.plot_svg(strokes)
+                    self.v.mpl_widget.plot_svg(strokes, image_size=(width_inch, height_inch))
 
                 #animation_simulation(strokes)
                 #display_svg(strokes)
