@@ -14,7 +14,7 @@ class ColorWidget(QWidget):
         # Window setup
         self.setWindowTitle('Colors of markers')
         self.setFixedSize(300, 250)
-        self.setStyleSheet("background-color: #b9b9b9;")
+        self.setStyleSheet("background-color: #faf5e4;")
         self.setup_ui()
 
     def setup_ui(self):
@@ -22,7 +22,7 @@ class ColorWidget(QWidget):
 
         title = QLabel("Choose a Color")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("color: black; font-size: 14px;")
+        title.setStyleSheet("color: #4a4a4a; font-size: 14px;")
         layout.addWidget(title)
 
         # marker colors for the ones we have

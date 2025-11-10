@@ -80,8 +80,6 @@ class Ui_MainWindow(object):
         self.colorButton = QtWidgets.QPushButton(parent=self.centralwidget)
         self.colorButton.clicked.connect(self.open_color_window) # add to open pop up window
         self.colorButton.setObjectName("Color")
-        # change color to be visible
-        self.colorButton.setStyleSheet("background-color: #ADD8E6; color: black")
         self.verticalLayout_2.addWidget(self.colorButton)
 
 
