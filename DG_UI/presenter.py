@@ -177,8 +177,27 @@ class Presenter:
         text = text.replace('\r\n', '\n').replace('\r', '\n')
         self.v.log(text)
 
+    def ask_open_svg_file(self) -> Optional[str]:
+        if hasattr(self.v, 'ask_open_file_with_dir'):
+            return self.v.ask_open_file_with_dir(
+                self.default_image_dir,
+                "Image Files (*.svg *.png *.jpg *.jpeg *.bmp);;All Files (*.*)"
+            )
         
-    def handle_upload_svg(self, svg_path: str):
+        # Fallback: use standard ask_open_file
+        return self.v.ask_open_file()
+
+        
+    def handle_upload_svg(self, svg_path: str = None):
+        if svg_path is None:
+            svg_path = self.ask_open_svg_file()
+            if not svg_path:
+                return
+            
+        if not Path(svg_path).exists():
+            self.v.warn(f"file not found: {svg_path}")
+            return
+        
         self.v.log(f"Uploaded File: {svg_path}")
         ext = Path(svg_path).suffix.lower()
 
