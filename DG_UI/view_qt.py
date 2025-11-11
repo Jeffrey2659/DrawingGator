@@ -5,6 +5,7 @@ from DG_UI import Ui_MainWindow
 from PyQt6.QtCore import Qt
 from matplotlib_widget import MatplotlibWidget
 from color_widget import ColorWidget
+from pathlib import Path
 
 class ViewQt(QMainWindow, Ui_MainWindow):
     # Presenter assigns these callables at runtime:
@@ -20,6 +21,9 @@ class ViewQt(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
+
+        ### ADDING DIRECTORY PATH TO IMAGES SO THAT OPENS WHEN UPLOAD FILE IS SELECTED
+        self.default_image_dir = Path(__file__).parent.parent / "Interface" / "images"
 
         #################################################################################
         ############# CHANGING THE COLOR FOR THE WINDOW AND ALL THE BUTTONS #############
@@ -284,6 +288,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
             return int(txt)
         except ValueError:
             return 115200
+        
     def _send_manual_from_line(self):
         txt = self.manualLine.text().strip()
         if txt and self.on_manual_send:
@@ -295,8 +300,21 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         if txt and self.on_manual_send:
             self.on_manual_send(txt)
             self.manualLine.clear()
+
     def _ask_open_svg(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Open Image or SVG", "", "Image or SVG Files (*.svg *.png *.jpg *.jpeg *.bmp))")
+        # ADDINF THE PATH
+        if self.default_image_dir.exists():
+            init_dir = str(self.default_image_dir)
+        else:
+            init_dir = ""
+            self.warn(f"Folder not found")
+
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Image",
+            init_dir,
+            "Image or SVG File (*.svg *.png *.jpg *.jpeg *.bmp);;All Files (*.*)"
+        )
         if path and self.on_upload_svg:
             self.on_upload_svg(path)
 
