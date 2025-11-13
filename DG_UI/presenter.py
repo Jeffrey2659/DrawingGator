@@ -7,10 +7,16 @@ from gcode_streamer import GCodeStreamer
 from vpype_runner import VpypeRunner
 from pathlib import Path
 
+<<<<<<< HEAD
 
 # load the algorithm and all its functions
 from Interface.svg_algorithm import conversion_svg, extract_coordinates, animation_simulation, display_svg
 import os
+=======
+# load the algorithm and all its functions
+from Interface.svg_algorithm import conversion_svg, extract_coordinates, animation_simulation, display_svg
+
+>>>>>>> main
 class Presenter:
     """
     The Presenter expects the 'view' to provide:
@@ -181,8 +187,32 @@ class Presenter:
         text = text.replace('\r\n', '\n').replace('\r', '\n')
         self.v.log(text)
 
+<<<<<<< HEAD
         
     def handle_upload_svg(self, svg_path: str):
+=======
+    def ask_open_svg_file(self) -> Optional[str]:
+        if hasattr(self.v, 'ask_open_file_with_dir'):
+            return self.v.ask_open_file_with_dir(
+                self.default_image_dir,
+                "Image Files (*.svg *.png *.jpg *.jpeg *.bmp);;All Files (*.*)"
+            )
+        
+        # Fallback: use standard ask_open_file
+        return self.v.ask_open_file()
+
+        
+    def handle_upload_svg(self, svg_path: str = None):
+        if svg_path is None:
+            svg_path = self.ask_open_svg_file()
+            if not svg_path:
+                return
+            
+        if not Path(svg_path).exists():
+            self.v.warn(f"file not found: {svg_path}")
+            return
+        
+>>>>>>> main
         self.v.log(f"Uploaded File: {svg_path}")
         ext = Path(svg_path).suffix.lower()
 
@@ -190,6 +220,7 @@ class Presenter:
         if ext in [".png", ".jpg", ".jpeg", ".bmp"]:   
             self.v.log("Conversion has started")
             try:
+<<<<<<< HEAD
                 _,_,_, output_svg = conversion_svg(svg_path)
                 svg_path = output_svg
                 self.v.log("Yay!")
@@ -213,6 +244,28 @@ class Presenter:
         self.v.log("Starting vpype conversion to G-code…")
         out_path = str(Path(svg_path).with_suffix(".gcode"))
         #this line below is the only one add
+=======
+                # added the lines for cm/inch
+                lines, width, height, width_inch, height_inch, width_cm, height_cm, output_svg = conversion_svg(svg_path)
+                svg_path = output_svg
+                self.v.log("Yay!")
+
+                # get the animation code
+                strokes, num_strokes = extract_coordinates(svg_path)
+                self.v.log(f"extracted {len(strokes)}")
+                # call the widget to show svg
+                if hasattr(self.v, 'mpl_widget'):
+                    self.v.mpl_widget.plot_svg(strokes, image_size=(width_inch, height_inch))
+
+                #animation_simulation(strokes)
+                #display_svg(strokes)
+            except Exception as e:
+                self.v.warn(f"SVG conversion failed: {e}")
+                return
+        # Now convert the SVG to G-code using vpype
+        self.v.log("Starting vpype conversion to G-code…")
+        out_path = str(Path(svg_path).with_suffix(".gcode"))
+>>>>>>> main
         self.v.log(f"G-code will be saved to: {Path(out_path).resolve()}")
         self._vp.run_svg_to_gcode(svg_path, out_path=out_path)
                                  

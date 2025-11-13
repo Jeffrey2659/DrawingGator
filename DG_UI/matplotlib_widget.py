@@ -28,7 +28,11 @@ class MatplotlibWidget(QWidget):
 ############ NR.2 --> ANIMATION SIMULATION ###################################
 
     # same function as in svg_algorithm.py 
+<<<<<<< HEAD
     def plot_svg(self, strokes, num_strokes = None):
+=======
+    def plot_svg(self, strokes, num_strokes = None, image_size = None):
+>>>>>>> main
         self.clear()
         self.ax = self.figure.add_subplot(111)
         self.ax.set_aspect('equal')
@@ -66,12 +70,41 @@ class MatplotlibWidget(QWidget):
                 self.ax.plot(xs_stroke, ys_stroke, 'k-', linewidth=2)
         
         # adding a line that shows how many lines are in the image uploaded
+<<<<<<< HEAD
         self.figure.text(0.02, 0.98, f'Number of Strokes: {num_strokes}',
                      ha = 'left', va = 'top',
                      fontsize = 12, fontweight = 'bold')
         
         self.canvas.draw()
 
+=======
+        '''
+        self.figure.text(0.02, 0.98, f'Number of Strokes: {num_strokes}',
+                     ha = 'left', va = 'top',
+                     fontsize = 12, fontweight = 'bold')
+        '''
+
+        # adding line to display the image size
+        if image_size is not None:
+            width_inch, height_inch = image_size
+            self.figure.text(0.02, 0.98, f'Number of Strokes: {num_strokes} Image Size: {width_inch:.2f} x {height_inch:.2f} inch',
+                     ha = 'left', va = 'top',
+                     fontsize = 10, fontweight = 'bold')
+        
+        self.canvas.draw()
+
+    def update_colors(self, color_str: str):
+        self.current_color = color_str
+
+        # update the color of the displayed image based on the color selected
+        if self.ax:
+            for line in self.ax.lines:
+                line.set_color(self.current_color)
+            self.canvas.draw_idle()
+
+
+
+>>>>>>> main
 '''        
     def plot_svg(self, strokes, interval=1):
         self.clear()
