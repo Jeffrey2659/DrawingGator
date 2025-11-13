@@ -1,11 +1,11 @@
-#include "CustomVector.h"
-#include "AlgorithmItems.h"
-#include "StateHolder.h"
-#include "ErrorResp.h"
-
-
 #ifndef GCODE_HANDLER
 #define GCODE_HANDLER
+
+#include "CustomVector.h"
+#include "AlgorithmClasses.h"
+#include "AlgorithmMethods.h"
+#include "StateHolder.h"
+#include "ErrorResp.h"
 
 class GCodeHandler {
 public:
@@ -15,6 +15,7 @@ public:
     GCOM_LIN_MOVE_PEN_DN = 1,
     GCOM_ARC_MOVE_PEN_UP = 2,
     GCOM_ARC_MOVE_PEN_DN = 3,
+    GCOM_DIRECT_STEPPER_MV = 6,
     GCOM_UNITS_INCHES = 20,
     GCOM_UNITS_MILLIS = 21,
     GCOM_SEND_STORED_POS = 60,
@@ -131,7 +132,8 @@ public:
       return false; // Uh oh!
     }
     int valAsInt = (int)(commandPairs[0].value);
-    double gx, gy, cx, cy, s;
+    double gx, gy, cx, cy;
+    int s, l, r;
     switch (commandPairs[0].key) {
       case 'G':
         switch (valAsInt) {
@@ -173,6 +175,12 @@ public:
             cx = getArg('I', commandPairs);
             cy = getArg('J', commandPairs);
             holdData(LegData(0.0, 0.0, gx, gy, cx, cy, CIRCULAR));
+            break;
+
+          case GCOM_DIRECT_STEPPER_MV:
+            l = getArg('L', commandPairs); // No has because optional
+            r = getArg('R', commandPairs); // No has because optional
+            statesPtr->setMove(l, r);
             break;
 
           case GCOM_SEND_STORED_POS:
@@ -225,7 +233,8 @@ public:
           case MCOM_SET_SERVO:
             if (!hasArg('S', commandPairs)) { return false; }
             s = getArg('S', commandPairs);
-            if (s > 20) {                                     // May need changin?
+            statesPtr->setPWM(s);
+            if (s > 200) {                                     // May need changin?
               statesPtr->penState = StateHolder::PEN_DOWN; 
             } else {
               statesPtr->penState = StateHolder::PEN_UP; 

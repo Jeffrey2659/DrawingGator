@@ -1,9 +1,8 @@
-#include "AlgorithmItems.h"
-#include "CustomVector.h"
-
-
 #ifndef STATE_HOLDER
 #define STATE_HOLDER
+
+#include "AlgorithmClasses.h"
+#include "CustomVector.h"
 
 struct StateHolder {
   enum MOVE_STATE {
@@ -27,7 +26,12 @@ struct StateHolder {
   Point curPos;
   LegData curLeg;
   LegData nextLeg;
-  double curSpeed;
+  double curSpeed = 1;
+  int curPWM = 0;
+  bool changedPWM = true;
+  int lMove = 0;
+  int rMove = 0;
+  bool changedMove = false;
   UNIT_STATE unitState; 
   SERVO_STATE penState;
   MOVE_STATE moveState;
@@ -47,6 +51,17 @@ struct StateHolder {
   }
   void setMillis() {
     unitState = unitState | 0x01; // set bit 0
+  }
+
+  void setPWM(int newPWM) {
+    curPWM = min(max(newPWM, 70), 240); // 240 is down, 70 is up
+    changedPWM = true;
+  }
+
+  void setMove(int l, int r) {
+    lMove = l; 
+    rMove = r;
+    changedMove = true;
   }
 
   // Unit "getters" (NOT YET TESTED)

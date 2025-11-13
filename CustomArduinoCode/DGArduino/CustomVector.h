@@ -1,8 +1,7 @@
-#include <Printable.h>
-
-
 #ifndef CUSTOM_VECT
 #define CUSTOM_VECT
+
+#include <Printable.h>
 
 // tired of not having this. Making my own implementation
 
