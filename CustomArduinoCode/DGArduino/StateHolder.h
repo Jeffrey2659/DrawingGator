@@ -9,7 +9,8 @@ struct StateHolder {
     STOPPED,    // Needs specific signal to idle again
     HALTED,     // Waits for user input
     IDLE,       // Can move, just not anything queued
-    MOVING      // Actively moving, can be cancelled
+    MOVING,     // Actively moving, can be cancelled
+    RESTARTING  // Recovering from a STOPPED state
   };
   enum SERVO_STATE {
     PEN_DOWN,
@@ -26,15 +27,20 @@ struct StateHolder {
   Point curPos;
   LegData curLeg;
   LegData nextLeg;
+
   double curSpeed = 1;
   int curPWM = 0;
   bool changedPWM = true;
+
   int lMove = 0;
   int rMove = 0;
   bool changedMove = false;
-  UNIT_STATE unitState; 
-  SERVO_STATE penState;
-  MOVE_STATE moveState;
+
+  bool toHalt = false;
+
+  UNIT_STATE unitState = ABS_INCHES; 
+  SERVO_STATE penState = PEN_UP;
+  MOVE_STATE moveState = RESTARTING;
 
   StateHolder() {};
 
@@ -82,7 +88,6 @@ struct StateHolder {
   bool hasNextLeg() {
     return nextLeg.valid; // opposites
   }
-
 
   // 
 };

@@ -75,8 +75,8 @@ Point getLengthsFromPos(Point pos) {
 	return Point(leftLen, rightLen);
 }
 
-// Gets next point to move to
-Point getNextPoint(StateHolder& stateHolder) {
+// Gets next lengths to rotate motors to
+Point getBestLengths(StateHolder& stateHolder) {
   Point& curPos = stateHolder.curPos;
   LegData& curLegData = stateHolder.curLeg;
   Point bestLengths = getLengthsFromPos(curPos);
@@ -92,8 +92,12 @@ Point getNextPoint(StateHolder& stateHolder) {
       }
     }
   }
-  // Otherwise, actual progress! Lets go!
-  return bestLengths;
+  return bestLengths; // IN INCHES
+}
+
+void movePosByLengths(Point lengths, StateHolder& sh) {
+  Point curLens = getLengthsFromPos(sh.curPos);
+  sh.curPos = getPointFromLengths(curLens.X + lengths.X, curLens.Y + lengths.Y);
 }
 
 #endif // ALGO_METHODS

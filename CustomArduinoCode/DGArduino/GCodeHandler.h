@@ -27,7 +27,10 @@ public:
     // MCOM_[COMMAND_NAME] = [mval],
     MCOM_UNCOND_HALT = 0,
     MCOM_COND_HALT = 1,
-    MCOM_SET_SERVO = 3
+    MCOM_SET_SERVO = 3,
+    MCOM_CONTINUE = 108,
+    MCOM_SHUTDOWN = 112,
+    MCOM_RESTART = 999
   };
 private:
   // Just for some test stuff
@@ -39,7 +42,6 @@ private:
   Vector<char> curCommand;
   LegData storedLegData;
   StateHolder* statesPtr;
-
 
   bool hasArg(char key, Vector<KeyValueItem<char, double>> commandArgs) {
     for (int i = 0; i < commandArgs.getSize(); i++) {
@@ -65,7 +67,7 @@ private:
     if (!statesPtr->hasNextLeg()) {
       statesPtr->nextLeg = storedLegData;
     } else {
-      sendErr(ERROR_ENUM::STATE_LEGS_FULL);
+      // sendErr(ERROR_ENUM::STATE_LEGS_FULL);
     }
   }
 
@@ -239,6 +241,22 @@ public:
             } else {
               statesPtr->penState = StateHolder::PEN_UP; 
             }
+            break;
+
+          case MCOM_CONTINUE:
+            if (!(statesPtr->moveState == StateHolder::HALTED)) {
+              sendErr(ERROR_ENUM::NO_CONT_NOT_HALT);
+              break;
+            }
+            statesPtr->moveState = StateHolder::IDLE;
+            break;
+
+          case MCOM_SHUTDOWN:
+            statesPtr->moveState = StateHolder::STOPPED;
+            break;
+
+          case MCOM_RESTART:
+            statesPtr->moveState = StateHolder::RESTARTING;
             break;
 
           default:
