@@ -14,6 +14,13 @@ class GCodeModel:
 
     def load_from_file(self, path: str) -> int:
         file_path = Path(path)
+        #reset variables
+        self.lines = []
+        self.cleaned = []
+        self.total = 0
+        self.sent = 0
+        self.paused = False
+
         #reads from gcode file, and stores it in variable text as a big string
         text = file_path.read_text(encoding="utf-8")
         #split text into lines and store as list of bytes, it splits at \n, the /n charcaters are saved when reading from the gcode file
