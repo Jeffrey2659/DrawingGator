@@ -4,11 +4,8 @@ from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QProgressBar,
 from DG_UI import Ui_MainWindow
 from PyQt6.QtCore import Qt
 from matplotlib_widget import MatplotlibWidget
-<<<<<<< HEAD
-=======
 from color_widget import ColorWidget
 from pathlib import Path
->>>>>>> main
 
 class ViewQt(QMainWindow, Ui_MainWindow):
     # Presenter assigns these callables at runtime:
@@ -25,8 +22,6 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         super().__init__(parent)
         self.setupUi(self)
 
-<<<<<<< HEAD
-=======
         ### ADDING DIRECTORY PATH TO IMAGES SO THAT OPENS WHEN UPLOAD FILE IS SELECTED
         self.default_image_dir = Path(__file__).parent.parent / "Interface" / "images"
 
@@ -187,7 +182,6 @@ class ViewQt(QMainWindow, Ui_MainWindow):
 
         self.setWindowTitle("Drawing Gator")
 
->>>>>>> main
         #manual command dock
         dock = QDockWidget("Manual Command", self)
         dock.setObjectName("ManualCommandDock")
@@ -309,26 +303,6 @@ class ViewQt(QMainWindow, Ui_MainWindow):
             self.manualLine.clear()
 
     def _ask_open_svg(self):
-<<<<<<< HEAD
-        path, _ = QFileDialog.getOpenFileName(
-        self,
-        "Open Image or SVG",
-        "",
-        "Image or SVG Files (*.svg *.png *.jpg *.jpeg *.bmp *.tif *.tiff);;All Files (*)",
-    )
-        if path and self.on_upload_svg:
-            self.on_upload_svg(path)
-
-    # def _ask_open_image(self):
-    #     path, _ = QFileDialog.getOpenFileName(
-    #         self,
-    #         "Open Image",
-    #         "",
-    #         "Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff);;All Files (*)",
-    #     )
-    #     if path and self.on_upload_image:
-    #         self.on_upload_image(path)
-=======
         # ADDINF THE PATH
         if self.default_image_dir.exists():
             init_dir = str(self.default_image_dir)
@@ -351,4 +325,3 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         # call the function to display the color on the image
         self.color_window.color_sel.connect(self.mpl_widget.update_colors)
         self.color_window.show()
->>>>>>> main

@@ -6,17 +6,12 @@ from serial_service import SerialService
 from gcode_streamer import GCodeStreamer
 from vpype_runner import VpypeRunner
 from pathlib import Path
-
-<<<<<<< HEAD
-
-# load the algorithm and all its functions
-from Interface.svg_algorithm import conversion_svg, extract_coordinates, animation_simulation, display_svg
 import os
-=======
+
+
 # load the algorithm and all its functions
 from Interface.svg_algorithm import conversion_svg, extract_coordinates, animation_simulation, display_svg
 
->>>>>>> main
 class Presenter:
     """
     The Presenter expects the 'view' to provide:
@@ -187,10 +182,6 @@ class Presenter:
         text = text.replace('\r\n', '\n').replace('\r', '\n')
         self.v.log(text)
 
-<<<<<<< HEAD
-        
-    def handle_upload_svg(self, svg_path: str):
-=======
     def ask_open_svg_file(self) -> Optional[str]:
         if hasattr(self.v, 'ask_open_file_with_dir'):
             return self.v.ask_open_file_with_dir(
@@ -207,82 +198,52 @@ class Presenter:
             svg_path = self.ask_open_svg_file()
             if not svg_path:
                 return
-            
+
+        svg_path = str(svg_path)
         if not Path(svg_path).exists():
             self.v.warn(f"file not found: {svg_path}")
             return
-        
->>>>>>> main
+
         self.v.log(f"Uploaded File: {svg_path}")
         ext = Path(svg_path).suffix.lower()
 
-        # check the extensions of the file loaded
-        if ext in [".png", ".jpg", ".jpeg", ".bmp"]:   
-            self.v.log("Conversion has started")
-            try:
-<<<<<<< HEAD
-                _,_,_, output_svg = conversion_svg(svg_path)
-                svg_path = output_svg
-                self.v.log("Yay!")
-                self.v.log(f"SVG created: {svg_path}")
-            except Exception as e:
-                self.v.warn(f"SVG conversion failed: {e}")
-                return
-        else:
-            self.v.log("SVG file detected, skipping conversion.")
-        
+        # ------------------ PREVIEW SECTION ------------------
         try:
-            strokes = extract_coordinates(svg_path)
-            num_strokes = len(strokes)
-            self.v.log(f"Extracted {num_strokes} stroke(s) for preview.")
-            if hasattr(self.v, 'mpl_widget'):
-                self.v.mpl_widget.plot_svg(strokes, num_strokes)
-        except Exception as e:
-            self.v.warn(f"SVG parsing/preview failed: {e}")
-
-        # Now convert the SVG to G-code using vpype
-        self.v.log("Starting vpype conversion to G-code…")
-        out_path = str(Path(svg_path).with_suffix(".gcode"))
-        #this line below is the only one add
-=======
-                # added the lines for cm/inch
+            if ext in [".png", ".jpg", ".jpeg", ".bmp"]:
+                # 1) Raster → SVG
+                self.v.log("Conversion has started")
+                # adjust return values to match your actual conversion_svg version
                 lines, width, height, width_inch, height_inch, width_cm, height_cm, output_svg = conversion_svg(svg_path)
-                svg_path = output_svg
-                self.v.log("Yay!")
+                svg_path = output_svg  # now work with the generated SVG
+                self.v.log("Yay! Raster image converted to SVG.")
 
-                # get the animation code
+                # 2) Extract strokes from the new SVG and preview
+                strokes,num_strokes = extract_coordinates(svg_path)
+                self.v.log(f"Extracted {num_strokes} strokes from converted SVG")
+
+                if hasattr(self.v, "mpl_widget"):
+                    self.v.mpl_widget.plot_svg(strokes,num_strokes=num_strokes, image_size=(width_inch, height_inch))
+
+            elif ext == ".svg":
+                # Already an SVG: just extract coordinates and preview
+                self.v.log("SVG file detected. Skipping raster conversion.")
                 strokes, num_strokes = extract_coordinates(svg_path)
-                self.v.log(f"extracted {len(strokes)}")
-                # call the widget to show svg
-                if hasattr(self.v, 'mpl_widget'):
-                    self.v.mpl_widget.plot_svg(strokes, image_size=(width_inch, height_inch))
+                self.v.log(f"Extracted {num_strokes} strokes from SVG")
 
-                #animation_simulation(strokes)
-                #display_svg(strokes)
-            except Exception as e:
-                self.v.warn(f"SVG conversion failed: {e}")
-                return
-        # Now convert the SVG to G-code using vpype
+                if hasattr(self.v, "mpl_widget"):
+                    # We may not know the physical size, so just omit image_size
+                    self.v.mpl_widget.plot_svg(strokes,num_strokes=num_strokes)
+            else:
+                self.v.warn(f"Unsupported file type for preview: {ext}")
+        except Exception as e:
+            self.v.warn(f"SVG preview failed: {e}")
+            # we still continue to vpype below, since G-code generation might work
+
+        # ------------------ VTYPE → G-CODE SECTION ------------------
         self.v.log("Starting vpype conversion to G-code…")
         out_path = str(Path(svg_path).with_suffix(".gcode"))
->>>>>>> main
         self.v.log(f"G-code will be saved to: {Path(out_path).resolve()}")
         self._vp.run_svg_to_gcode(svg_path, out_path=out_path)
-                                 
-        '''
-        self.v.log(f"Converting with vpype: {svg_path}\n")
-        # Decide output .gcode location (temp is fine)
-        out_path = str(Path(svg_path).with_suffix(".gcode"))
-        # Tune these to your machine (or store in settings)
-        self._vp.run_svg_to_gcode(svg_path,
-                                  out_path=out_path
-                                 )
-        #extra paramters to addd later  pen_up_z=5.0,
-                                 # pen_down_z=0.0,
-                                 # feed=2000
-'''
-
-     #  when vpype finishes, load the file into the model
     def _on_vpype_finished(self, ok: bool, gcode_path: str, log_text: str):
         if log_text:
             self.v.log(log_text + ("\n" if not log_text.endswith("\n") else ""))
@@ -305,7 +266,7 @@ class Presenter:
 
         #Need to change this to be robust
         #CHANGE THIS 
-        potrace_bin = r"C:\Program Files\Potrace\potrace.exe"
+    
 
         # Run in a worker thread so the UI stays responsive
         t = QThread(self.v)
@@ -314,7 +275,8 @@ class Presenter:
             def run(self_nonlocal):
                 try:
                     # conversion_svg will raise if potrace not found/returns nonzero
-                    _, _, _, svg_path = conversion_svg(img_path, svg_out, potrace_bin)
+                    #do not need to add potrace path here as it is added in the function, witht the find_potrace function
+                    _, _, _, svg_path = conversion_svg(img_path, svg_out)
                     self_nonlocal.done.emit(None, svg_path)
                 except Exception as e:
                     self_nonlocal.done.emit(e, None)

@@ -57,7 +57,7 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
             background.paste(image, mask=image.split()[1])
         image = background
 
-    image = image.convert('L')
+    image = Image.open(file_path).convert('L')
     width, height = image.size
 
     # convert from pixel to cm/inch to display
@@ -77,7 +77,7 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     img_path = "temp.pbm"
     img.save(img_path)
 
-    exe = find_potrace(potrace_path)
+    exe = find_potrace()
     print(f"Using potrace executable at: {exe}")
     # call subprocess since potrace does not work for my computer 
     try:
