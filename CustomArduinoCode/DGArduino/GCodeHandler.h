@@ -11,14 +11,14 @@ class GCodeHandler {
 public:
   enum GCommands {
     // GCOM_[COMMAND_NAME] = [gval],
-    GCOM_LIN_MOVE_PEN_UP = 0,
-    GCOM_LIN_MOVE_PEN_DN = 1,
+    GCOM_GREEDY_MOVE = 0,
+    GCOM_LIN_MOVE = 1,
     GCOM_ARC_MOVE_PEN_UP = 2,
     GCOM_ARC_MOVE_PEN_DN = 3,
     GCOM_DIRECT_STEPPER_MV = 6,
     GCOM_UNITS_INCHES = 20,
     GCOM_UNITS_MILLIS = 21,
-    GCOM_SEND_STORED_POS = 60,
+    GCOM_SEND_STATE = 60,
     GCOM_ABSOLUTE_POS = 90,
     GCOM_RELATIVE_POS = 91,
     GCOM_SET_CUR_POS = 92
@@ -67,7 +67,7 @@ private:
     if (!statesPtr->hasNextLeg()) {
       statesPtr->nextLeg = storedLegData;
     } else {
-      // sendErr(ERROR_ENUM::STATE_LEGS_FULL);
+      sendErr(ERROR_ENUM::STATE_LEGS_FULL);
     }
   }
 
@@ -124,9 +124,9 @@ public:
   // Handles parsing and performing the g-code 
   bool translateGCode(Vector<KeyValueItem<char, double>> commandPairs) {
     commandPairs.setPrintFormat(Vector<KeyValueItem<char, double>>::VPF_VERT_FANCY); // Just stylistic choice
-    Serial.println(commandPairs);
+    // Serial.println(commandPairs);
 
-    Serial.println("Placeholder Print for Executing GCode");
+    // Serial.println("Placeholder Print for Executing GCode");
     // What happens here depends on instruction and parameters
 
     if (commandPairs.getSize() < 1) {
@@ -139,15 +139,15 @@ public:
     switch (commandPairs[0].key) {
       case 'G':
         switch (valAsInt) {
-          case GCOM_LIN_MOVE_PEN_UP:
+          case GCOM_GREEDY_MOVE:
             if (!hasArg('X', commandPairs)) { return false; }
             if (!hasArg('Y', commandPairs)) { return false; }
             gx = getArg('X', commandPairs);
             gy = getArg('Y', commandPairs);
-            holdData(LegData(0.0, 0.0, gx, gy, LINE_FOLLOW));
+            holdData(LegData(0.0, 0.0, gx, gy, GREEDY));
             break;
 
-          case GCOM_LIN_MOVE_PEN_DN:
+          case GCOM_LIN_MOVE:
             if (!hasArg('X', commandPairs)) { return false; }
             if (!hasArg('Y', commandPairs)) { return false; }
             gx = getArg('X', commandPairs);
@@ -185,8 +185,8 @@ public:
             statesPtr->setMove(l, r);
             break;
 
-          case GCOM_SEND_STORED_POS:
-            Serial.print(statesPtr->nextLeg);
+          case GCOM_SEND_STATE:
+            Serial.println(*statesPtr);
             break;
 
           case GCOM_UNITS_INCHES:
@@ -210,7 +210,7 @@ public:
             if (!hasArg('Y', commandPairs)) { return false; }
             gx = getArg('X', commandPairs);
             gy = getArg('Y', commandPairs);
-            holdData(LegData(0.0, 0.0, gx, gy, OVERWRITE));
+            statesPtr->curPos = Point(gx, gy);
             break;
 
           default:

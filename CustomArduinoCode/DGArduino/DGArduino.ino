@@ -75,47 +75,52 @@ void loop() {
     }
   } // May set to move directly above
   if (sh.moveState == StateHolder::MOVING) {
+    // Check if there is something to do next
     if (sh.curLeg.valid) {
-      Point bestLengthMove = getBestLengths(sh);
-      movePosByLengths(bestLengthMove, sh);
-
-      if (bestLengthMove.Magnitude() < (MIN_STEP_DIST/2.0)) {
+      Point bestLengthDelta = getBestLengthDeltas(sh);
+      movePosByLengths(bestLengthDelta, sh);
+      // Check if the next point is same as current pos
+      if ((bestLengthDelta/MIN_STEP_DIST).Magnitude() < MIN_STEP_DIST/2) {
+        // if same as current pos, no more movements, leg is OVER!
         sh.moveState = StateHolder::IDLE;
         sh.curLeg = LegData();
-      } else {
-        sh.lMove = round(bestLengthMove.X/MIN_STEP_DIST);
-        sh.rMove = round(bestLengthMove.Y/MIN_STEP_DIST);
+      } else { // if it is different, then make the move!
+        sh.lMove = round(bestLengthDelta.X/MIN_STEP_DIST);
+        sh.rMove = round(bestLengthDelta.Y/MIN_STEP_DIST);
         sh.changedMove = true;
       }
+    } else {
+      sh.moveState == StateHolder::IDLE;
     }
 
+    // Then, if there is, (or if a move was placed) perform the move
     if (sh.changedMove) {
       sh.changedMove = false;
       int LDIR = (sh.lMove < 0 ? LOW : HIGH); // may need to reverse
       int RDIR = (sh.rMove < 0 ? LOW : HIGH); // may need to reverse
       digitalWrite(LEFT_MOTOR_DIR_PIN, LDIR);
       digitalWrite(RIGHT_MOTOR_DIR_PIN, RDIR);
-      int LMOD = 5000/(2*abs(sh.lMove));
-      int RMOD = 5000/(2*abs(sh.rMove));
+      int LMOD = sh.lMove != 0 ? 5000/(2*abs(sh.lMove)) : 5000;
+      int RMOD = sh.rMove != 0 ? 5000/(2*abs(sh.rMove)) : 5000;
       int LSTEP = LOW;
       int RSTEP = LOW;
+      
       for (int i = 1; i < 5000; i++) {
         delayMicroseconds(20);
         if (i % LMOD == 0) {
           LSTEP = (LSTEP == LOW ? HIGH : LOW);
           digitalWrite(LEFT_MOTOR_STEP_PIN, LSTEP);
-          Serial.println("LEFT MOVE");
         }
         if (i % RMOD == 0) {
           RSTEP = (RSTEP == LOW ? HIGH : LOW);
           digitalWrite(RIGHT_MOTOR_STEP_PIN, RSTEP);
-          Serial.println("RIGHT MOVE");
+          
         }
       }
       digitalWrite(LEFT_MOTOR_STEP_PIN, LOW);
       digitalWrite(RIGHT_MOTOR_STEP_PIN, LOW);
-      delay(10);
-    } else {
+      //delayMicroseconds(200);      
+    } else { // and if no action to move, then it switches to idle
       sh.moveState = StateHolder::IDLE;
     }
   }  

@@ -3,7 +3,7 @@
 
 #include <Printable.h>
 
-enum Algorithm { OVERWRITE, GREEDY, LINE_FOLLOW, CIRCULAR };
+enum Algorithm { GREEDY, LINE_FOLLOW, CIRCULAR };
 
 struct Point : public Printable {
   double X;

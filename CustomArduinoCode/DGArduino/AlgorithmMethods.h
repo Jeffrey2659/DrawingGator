@@ -7,8 +7,9 @@
 // Mechanical Parameters
 #define WHEEL_RADIUS 0.5    // in inches
 #define MIN_ROT_STEP 1.8    // in degrees
-#define CANVAS_WIDTH 12.0   // in inches
-#define CANVAS_HEIGHT 12.0  // in inches
+#define CANVAS_WIDTH 10.0   // in inches
+#define MOUNT_V_OFFSET 3.5  // in inches
+#define MOUNT_H_OFFSET 2.125 // in inches
 #define HLDR_WIRE_HDIST 1.0 // in inches
 #define HLDR_PEN_VDIST 0.5  // in inches
 
@@ -16,7 +17,7 @@
 const double MIN_STEP_DIST = WHEEL_RADIUS*(MIN_ROT_STEP*PI/180.0d); // inches
 
 
-double getAlgoDist(Point curLoc, LegData data) {
+double getAlgoDist(Point curLo  c, LegData data) {
   double bestDist = (data.start - data.goal).Magnitude();
   double greedWeight, lineWeight, curveWeight;
 
@@ -32,7 +33,7 @@ double getAlgoDist(Point curLoc, LegData data) {
       greedWeight = (data.goal-curLoc).Magnitude();
 		  lineWeight = abs(curLoc.X*m - curLoc.Y*1 + yoff)/sqrt((m*m) + 1);
 
-      bestDist = (1*greedWeight + 2*lineWeight) / 3;
+      bestDist = (1*greedWeight +  2*lineWeight) / 3;
       break;
 
     case CIRCULAR:
@@ -44,7 +45,7 @@ double getAlgoDist(Point curLoc, LegData data) {
       greedWeight = (data.goal - curLoc).Magnitude();
       curveWeight = (closestCircPoint - curLoc).Magnitude();
 
-      bestDist = (1*greedWeight + 2*curveWeight) / 3;
+      bestDist = (1*greedWeight + 1*curveWeight) / 2;
       break;
 
     default:
@@ -76,15 +77,16 @@ Point getLengthsFromPos(Point pos) {
 }
 
 // Gets next lengths to rotate motors to
-Point getBestLengths(StateHolder& stateHolder) {
+Point getBestLengthDeltas(StateHolder& stateHolder) {
   Point& curPos = stateHolder.curPos;
+  Point curLengths = getLengthsFromPos(curPos);
   LegData& curLegData = stateHolder.curLeg;
-  Point bestLengths = getLengthsFromPos(curPos);
+  Point bestLengths = Point(0, 0);
   double bestDist = getAlgoDist(curPos, curLegData);
   for (int i = -2; i <= 2; i++) {
     for (int j = -2; j <= 2; j++) {
-      Point lengths = Point(curPos.X + i*MIN_STEP_DIST, curPos.Y + j*MIN_STEP_DIST);
-      Point testPoint = getPointFromLengths(lengths.X, lengths.Y);
+      Point lengths = Point(i*MIN_STEP_DIST, j*MIN_STEP_DIST);
+      Point testPoint = getPointFromLengths(curLengths.X + lengths.X, curLengths.Y + lengths.Y);
       double curDist = getAlgoDist(testPoint, curLegData);
       if (curDist < bestDist) {
         bestDist = curDist;

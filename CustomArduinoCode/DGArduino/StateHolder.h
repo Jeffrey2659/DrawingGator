@@ -3,8 +3,9 @@
 
 #include "AlgorithmClasses.h"
 #include "CustomVector.h"
+#include <Printable.h>
 
-struct StateHolder {
+struct StateHolder : public Printable {
   enum MOVE_STATE {
     STOPPED,    // Needs specific signal to idle again
     HALTED,     // Waits for user input
@@ -28,7 +29,6 @@ struct StateHolder {
   LegData curLeg;
   LegData nextLeg;
 
-  double curSpeed = 1;
   int curPWM = 0;
   bool changedPWM = true;
 
@@ -89,7 +89,37 @@ struct StateHolder {
     return nextLeg.valid; // opposites
   }
 
-  // 
+  // Debugging is god awful without this
+  size_t printTo(Print& p) const {
+    size_t n = 0;
+    n += p.println("Printing State:");
+
+    n += p.print("curPos: ");
+    n += p.println(curPos);
+
+    n += p.print("curPWM: ");
+    n += p.print(curPWM);
+    n += p.print(", changedPWM: ");
+    n += p.print(changedPWM);
+    n += p.print(", changedMove: ");
+    n += p.print(changedMove);
+    n += p.print(", toHalt: ");
+    n += p.println(toHalt);
+
+    n += p.print("(lMove,rMove): ");
+    n += p.println(Point(lMove, rMove));
+
+    n += p.print("unitState: ");
+    n += p.print(unitState);
+    n += p.print(", penState: ");
+    n += p.print(penState);
+    n += p.print(", moveState: ");
+    n += p.println(moveState);
+
+    n += p.println("End of States");
+    
+    return n;
+  }
 };
 
 
