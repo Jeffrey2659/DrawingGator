@@ -105,6 +105,8 @@ struct StateHolder : public Printable {
 
     n += p.print("curPos: ");
     n += p.println(curPos);
+    n += p.print("curOffset: ");
+    n += p.println(curOffset);
 
     n += p.print("curPWM: ");
     n += p.print(curPWM);

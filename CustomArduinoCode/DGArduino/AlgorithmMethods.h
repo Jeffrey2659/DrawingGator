@@ -7,7 +7,7 @@
 // Mechanical Parameters
 #define WHEEL_RADIUS 0.5    // in inches
 #define MIN_ROT_STEP 1.8    // in degrees
-#define CANVAS_WIDTH 10.0   // in inches
+#define CANVAS_WIDTH 12.0   // in inches
 
 #define PI 3.14159265359
 const double MIN_STEP_DIST = WHEEL_RADIUS*(MIN_ROT_STEP*PI/180.0d); // inches
