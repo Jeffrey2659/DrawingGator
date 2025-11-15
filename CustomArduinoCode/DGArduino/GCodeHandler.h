@@ -214,7 +214,7 @@ public:
             cx = getArg('I', commandPairs);
             cy = getArg('J', commandPairs);
             statesPtr->curPos = Point(gx, gy);
-            statesPtr->curOffset = Point(cx, cy); // Assumes offsets of 0,0 if not given
+            statesPtr->curOffset = Point(cx, cy) - statesPtr->curPos; // Assumes offsets of 0,0 if not given
             break;
 
           default:
