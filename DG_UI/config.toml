@@ -2,12 +2,13 @@
 default_profile = "grbl"
 
 [gwrite.grbl]
-unit = "mm"
-document_start = "G21\nG90\nG92 X0 Y0\nM3 S0\n"
+unit = "inch"
+document_start = "G20\nG90\nG92 X0 Y0\nM3 S70\n"
 layer_start = ""
-segment_first = "M3 S0\nG00 F3000 X{x:.4f} Y{y:.4f}\n"     # Pen up, travel speed
-segment = "M3 S90\nG01 F1200 X{x:.4f} Y{y:.4f}\n"           # Pen down, draw speed  
+segment_first = "M3 S70\nG00 F3000 X{x:.4f} Y{y:.4f}\n"     # Pen up, travel speed
+segment = "M3 S250\nG01 F1200 X{x:.4f} Y{y:.4f}\n"           # Pen down, draw speed  
 layer_end = ""
-document_end = "M3 S0\nM5\nM2\n"
+document_end = "M3 S70\nM5\nM2\n"
 info = "GRBL profile with feed rate switching"
+
 
