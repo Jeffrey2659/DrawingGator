@@ -8,16 +8,12 @@
 #define WHEEL_RADIUS 0.5    // in inches
 #define MIN_ROT_STEP 1.8    // in degrees
 #define CANVAS_WIDTH 10.0   // in inches
-#define MOUNT_V_OFFSET 3.5  // in inches
-#define MOUNT_H_OFFSET 2.125 // in inches
-#define HLDR_WIRE_HDIST 1.0 // in inches
-#define HLDR_PEN_VDIST 0.5  // in inches
 
 #define PI 3.14159265359
 const double MIN_STEP_DIST = WHEEL_RADIUS*(MIN_ROT_STEP*PI/180.0d); // inches
 
 
-double getAlgoDist(Point curLo  c, LegData data) {
+double getAlgoDist(Point& curLoc, LegData& data) {
   double bestDist = (data.start - data.goal).Magnitude();
   double greedWeight, lineWeight, curveWeight;
 
@@ -78,7 +74,7 @@ Point getLengthsFromPos(Point pos) {
 
 // Gets next lengths to rotate motors to
 Point getBestLengthDeltas(StateHolder& stateHolder) {
-  Point& curPos = stateHolder.curPos;
+  Point curPos = stateHolder.getTruePos();
   Point curLengths = getLengthsFromPos(curPos);
   LegData& curLegData = stateHolder.curLeg;
   Point bestLengths = Point(0, 0);
@@ -98,8 +94,8 @@ Point getBestLengthDeltas(StateHolder& stateHolder) {
 }
 
 void movePosByLengths(Point lengths, StateHolder& sh) {
-  Point curLens = getLengthsFromPos(sh.curPos);
-  sh.curPos = getPointFromLengths(curLens.X + lengths.X, curLens.Y + lengths.Y);
+  Point curLens = getLengthsFromPos(sh.getTruePos());
+  sh.setTruePos(getPointFromLengths(curLens.X + lengths.X, curLens.Y + lengths.Y));
 }
 
 #endif // ALGO_METHODS

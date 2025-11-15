@@ -124,9 +124,7 @@ public:
   // Handles parsing and performing the g-code 
   bool translateGCode(Vector<KeyValueItem<char, double>> commandPairs) {
     commandPairs.setPrintFormat(Vector<KeyValueItem<char, double>>::VPF_VERT_FANCY); // Just stylistic choice
-    // Serial.println(commandPairs);
 
-    // Serial.println("Placeholder Print for Executing GCode");
     // What happens here depends on instruction and parameters
 
     if (commandPairs.getSize() < 1) {
@@ -134,6 +132,8 @@ public:
       return false; // Uh oh!
     }
     int valAsInt = (int)(commandPairs[0].value);
+    double xoff = statesPtr->curOffset.X;
+    double yoff = statesPtr->curOffset.Y;
     double gx, gy, cx, cy;
     int s, l, r;
     switch (commandPairs[0].key) {
@@ -144,7 +144,7 @@ public:
             if (!hasArg('Y', commandPairs)) { return false; }
             gx = getArg('X', commandPairs);
             gy = getArg('Y', commandPairs);
-            holdData(LegData(0.0, 0.0, gx, gy, GREEDY));
+            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, GREEDY));
             break;
 
           case GCOM_LIN_MOVE:
@@ -152,7 +152,7 @@ public:
             if (!hasArg('Y', commandPairs)) { return false; }
             gx = getArg('X', commandPairs);
             gy = getArg('Y', commandPairs);
-            holdData(LegData(0.0, 0.0, gx, gy, LINE_FOLLOW));
+            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, LINE_FOLLOW));
             break;
 
           case GCOM_ARC_MOVE_PEN_UP:
@@ -164,7 +164,7 @@ public:
             gy = getArg('Y', commandPairs);
             cx = getArg('I', commandPairs);
             cy = getArg('J', commandPairs);
-            holdData(LegData(0.0, 0.0, gx, gy, cx, cy, CIRCULAR));
+            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, cx + xoff, cy + yoff, CIRCULAR));
             break;
 
           case GCOM_ARC_MOVE_PEN_DN:
@@ -176,7 +176,8 @@ public:
             gy = getArg('Y', commandPairs);
             cx = getArg('I', commandPairs);
             cy = getArg('J', commandPairs);
-            holdData(LegData(0.0, 0.0, gx, gy, cx, cy, CIRCULAR));
+            
+            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, cx + xoff, cy + yoff, CIRCULAR));
             break;
 
           case GCOM_DIRECT_STEPPER_MV:
@@ -210,7 +211,10 @@ public:
             if (!hasArg('Y', commandPairs)) { return false; }
             gx = getArg('X', commandPairs);
             gy = getArg('Y', commandPairs);
+            cx = getArg('I', commandPairs);
+            cy = getArg('J', commandPairs);
             statesPtr->curPos = Point(gx, gy);
+            statesPtr->curOffset = Point(cx, cy); // Assumes offsets of 0,0 if not given
             break;
 
           default:

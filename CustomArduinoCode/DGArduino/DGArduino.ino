@@ -62,6 +62,7 @@ void loop() {
     bool hasNextLeg = sh.nextLeg.valid;
     if (!hasCurLeg && hasNextLeg) {
       sh.curLeg = sh.nextLeg;
+      sh.curLeg.start = sh.getTruePos();
       sh.nextLeg = LegData();
       sh.moveState = StateHolder::MOVING; // moving stepper motors soon by leg
     } else if (sh.changedMove) {

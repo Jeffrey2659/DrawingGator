@@ -26,6 +26,7 @@ struct StateHolder : public Printable {
   };
 
   Point curPos;
+  Point curOffset;
   LegData curLeg;
   LegData nextLeg;
 
@@ -87,6 +88,14 @@ struct StateHolder : public Printable {
 
   bool hasNextLeg() {
     return nextLeg.valid; // opposites
+  }
+
+  Point getTruePos() {
+    return (curPos + curOffset);
+  }
+
+  void setTruePos(Point newPos) {
+    curPos = newPos - curOffset;
   }
 
   // Debugging is god awful without this
