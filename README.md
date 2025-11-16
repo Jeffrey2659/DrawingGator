@@ -79,7 +79,7 @@ In the simplest terms, the flow of the service is the following:
 4. matplotlib + svgpathtools: for parsing and plotting the lines
 
 # Run the following command:
-```pip install pillow numpy svgwrite matplotlib svgpathtools```
+```pip install pillow numpy svgwrite matplotlib svgpathtools PyQt6 serial serialtools lxml```
 
 **For the case of potrace since it cannot be installed through the command line:**
 1. Windows:
@@ -99,12 +99,20 @@ In the simplest terms, the flow of the service is the following:
 - Circular path may not generate if center is between start and goal point
 
 **UI**
-- The text in the view box from the serial port is not properly formatted
+- The text in the view box from the serial port is not properly formatted (FIXED)
 - The status bar for the Lines sent does not update after a new g code file is loaded in over the exsisitng one
 - The svg to gcode conversion does not complete fully
+- If closing svg preview and command window, no way of recalling them.
 
 **Serial Communication**
 - The buffer is immediately filled with data and does not wait for the "okay" responses from the microcontroller
 
 **Simulation Output**
-- In some tested files there seems to be a "pen not lifted" and it drags the line when it draws. 
+- In some tested files there seems to be a "pen not lifted" and it drags the line when it draws. (FIXED)
+
+## TO RUN THE CODE
+
+1. Pull main branch
+2. cd DG_UI
+3. run python app.py
+4. Upload image from exising folder

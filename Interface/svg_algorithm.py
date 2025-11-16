@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 # parse SVG paths
 from svgpathtools import svg2paths
+from lxml import etree
 
 # REFERENCE-ISH https://github.com/Bhomik04/image-to-svg/blob/main/python%20practice.py
 
@@ -19,8 +20,31 @@ from svgpathtools import svg2paths
 def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrace"):
     # add the path to the image
     # add conversion to greyscale here
-    image = Image.open(file_path).convert('L')
+    image = Image.open(file_path)
+
+    # ADD CHECK FOR BACKGROUND BEING TRANSPARENT
+    if image.mode in ('RGBA', 'LA'):
+        # make it white for better processing
+        background = Image.new('RGB', image.size, (255, 255, 255))
+        if image.mode == 'RGBA':
+            background.paste(image, mask = image.split()[3])
+        else:
+            background.paste(image, mask=image.split()[1])
+        image = background
+
+    image = image.convert('L')
     width, height = image.size
+
+    # convert from pixel to cm/inch to display
+    # using 96 DPI as that is a default
+    dpi = image.info.get('dpi', (96, 96))[0]
+    # inches
+    width_inch = width / dpi
+    height_inch = height / dpi
+    # cm
+    width_cm = width_inch * 2.54
+    height_cm = height_inch * 2.54
+
     # 0 - 255
     img = image.point(lambda x: 0 if x < 128 else 255, '1')
     # output that potrace expects
@@ -39,9 +63,12 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     # list of plack pixels and coordinates we need 
     pixels = np.array(img)
     lines = [(x, y) for y in range(height) for x in range(width) if pixels[y, x] == 0]
+    
+    #### LET'S TRY AND ADD PAPER SIZE ####
+
     # return the lines and output_path in which is saved
     # also width and height for scaling purposes
-    return lines, width, height, output_path
+    return lines, width, height, width_inch, height_inch, width_cm, height_cm, output_path
 
     # get the size of the image
     # width, height = image.size
@@ -66,23 +93,60 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     # return lines, width, 
 
 
+def convert_to_a4(svg_in, svg_out, original_width, original_height): 
+    tree = etree.parse(svg_in) 
+    root = tree.getroot() 
+    
+    # Define A4 page size in millimeters 
+    a4_width, a4_height = 210, 297 
+    
+    # Update SVG root attributes 
+    root.attrib['width'] = f'{a4_width}mm' 
+    root.attrib['height'] = f'{a4_height}mm' 
+    root.attrib['viewBox'] = f'0 0 {a4_width} {a4_height}' 
+    root.attrib['preserveAspectRatio'] = 'xMidYMid meet' 
+    
+    scale_x = a4_width / original_width
+    scale_y = a4_height / original_height
+    
+    scale = min(scale_x, scale_y)
+    
+    offset_x = (a4_width - original_width * scale) / 2
+    offset_y = (a4_height - original_height * scale) / 2
+    
+    for g in root.findall(".//{http://www.w3.org/2000/svg}g"): 
+        g.attrib['transform'] = f"translate({offset_x},{offset_y + original_height * scale}) scale({scale},{-scale})" 
+        
+    tree.write(svg_out, pretty_print=True) 
+
 ##############################################################################################
                     ### NOT NEEDED BUT USED FOR TESTING PURPOSES ###
 # extract the coordinates
 def extract_coordinates(svg_path, samples=50):
+    # FIXED STOKES 
     # using the svg library to extract paths 
-    paths, _ = svg2paths(svg_path)
+    paths, attributes = svg2paths(svg_path)
     all_strokes = []
 
     for path in paths:
         stroke = []
+        prev_end = None
         for segment in path:
+            start = segment.point(0)
+            end = segment.point(1)
+            if prev_end is not None and abs(start - prev_end) > 1e-6:
+                if stroke:
+                    all_strokes.append(stroke)
+                stroke = []
             for t in np.linspace(0, 1, samples):
                 point = segment.point(t)
                 stroke.append((point.real, point.imag))
-        all_strokes.append(stroke)
-    return all_strokes
+            prev_end = end
+        if stroke:
+            all_strokes.append(stroke)
 
+    num_strokes = len(all_strokes)
+    return all_strokes, num_strokes
 
 # Adding a simulation to see how the drawing would look like
 def animation_simulation(strokes):
@@ -117,7 +181,7 @@ def animation_simulation(strokes):
         for ln in lines:
             ln.set_data([], [])
         return lines
-
+    
     def update(frame):
         stroke_idx, point_idx = frame
         stroke = strokes[stroke_idx]
@@ -138,19 +202,51 @@ def animation_simulation(strokes):
     )
 
     plt.show() 
+
+# display the svg drawing, because animation is not working when called in the UI  
+def display_svg(strokes):
+    # a4 size in inches
+    a4_width_in = 8.27   
+    a4_height_in = 11.69 
+
+    fig, ax = plt.subplots(figsize=(a4_width_in, a4_height_in))
+    ax.set_aspect('equal')
+    ax.invert_yaxis()
+    
+    all_points = [p for stroke in strokes for p in stroke]
+    xs, ys = zip(*all_points)
+
+    x_range = max(xs) - min(xs) if max(xs) != min(xs) else 1
+    y_range = max(ys) - min(ys) if max(ys) != min(ys) else 1
+    pad_x = x_range * 0.05
+    pad_y = y_range * 0.05
+    
+    ax.set_xlim(min(xs) - pad_x, max(xs) + pad_x)
+    ax.set_ylim(min(ys) - pad_y, max(ys) + pad_y)
+    ax.axis('off')
+    
+    # Draw all strokes
+    for stroke in strokes:
+        if stroke:
+            xs_stroke = [p[0] for p in stroke]
+            ys_stroke = [p[1] for p in stroke]
+            ax.plot(xs_stroke, ys_stroke, 'k-', linewidth=2)
+
+    plt.show()
 ##############################################################################################
 
 # add main
 if __name__ == "__main__":
     #input_path = "images/shapes.png"
-    #input_path = "drawinggator.jpeg"
-    #input_path = "images/simple.png"
+    #input_path = "images/drawinggator.jpeg"
+    input_path = "images/simple.png"
     #input_path = "images/roses.jpg"
-    input_path = "images/testing.png"
+    #input_path = "images/testing.png"
     output_path = "output.svg"
     potrace_executable = "potrace"
 
-    conversion_svg(input_path, output_path, potrace_executable)
+    lines, width, height, width_inch, height_inch, width_cm, height_cm, output_path = conversion_svg(input_path, output_path, potrace_executable)
+    convert_to_a4(output_path, output_path, width, height)
     # animation lines
-    strokes = extract_coordinates(output_path, samples=30)
+    strokes, num_strokes = extract_coordinates(output_path, samples=30)
     animation_simulation(strokes)
