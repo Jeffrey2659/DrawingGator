@@ -25,6 +25,8 @@ struct StateHolder : public Printable {
     REL_MILLIS    // 11b
   };
 
+  bool debugMode = false;
+
   Point curPos;
   Point curOffset;
   LegData curLeg;
@@ -108,7 +110,9 @@ struct StateHolder : public Printable {
     n += p.print("curOffset: ");
     n += p.println(curOffset);
 
-    n += p.print("curPWM: ");
+    n += p.print("debugMode: ");
+    n += p.print(debugMode);
+    n += p.print(", curPWM: ");
     n += p.print(curPWM);
     n += p.print(", changedPWM: ");
     n += p.print(changedPWM);
@@ -127,7 +131,7 @@ struct StateHolder : public Printable {
     n += p.print(", moveState: ");
     n += p.println(moveState);
 
-    n += p.println("End of States");
+    n += p.print("End of States");
     
     return n;
   }

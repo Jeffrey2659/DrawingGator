@@ -19,6 +19,11 @@ struct ERROR_ENUM {
 };
 
 
+void sendOk() {
+  Serial.println("OK");
+}
+
+
 void sendErr(ERROR_ENUM::Error errCode) {
   Serial.print("ERR: [0x");
   Serial.print(errCode, HEX);

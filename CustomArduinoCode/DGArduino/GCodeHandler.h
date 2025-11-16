@@ -11,6 +11,7 @@ class GCodeHandler {
 public:
   enum GCommands {
     // GCOM_[COMMAND_NAME] = [gval],
+    GCOM_DEBUG_MODE_T = -1,
     GCOM_GREEDY_MOVE = 0,
     GCOM_LIN_MOVE = 1,
     GCOM_ARC_MOVE_PEN_UP = 2,
@@ -49,8 +50,11 @@ private:
         return true;
       }
     }
-    Serial.print("Missing arg: ");
-    Serial.println(key);
+    if (statesPtr->debugMode) {
+      Serial.print("Missing arg: ");
+      Serial.println(key);
+    }
+    sendErr(ERROR_ENUM::GCODE_ARG);
     return false;
   }
   double getArg(char key, Vector<KeyValueItem<char, double>> commandArgs) {
@@ -66,6 +70,7 @@ private:
     storedLegData = legToStore;
     if (!statesPtr->hasNextLeg()) {
       statesPtr->nextLeg = storedLegData;
+      // Ok will be sent when move is done
     } else {
       sendErr(ERROR_ENUM::STATE_LEGS_FULL);
     }
@@ -123,12 +128,12 @@ public:
 
   // Handles parsing and performing the g-code 
   bool translateGCode(Vector<KeyValueItem<char, double>> commandPairs) {
-    commandPairs.setPrintFormat(Vector<KeyValueItem<char, double>>::VPF_VERT_FANCY); // Just stylistic choice
-
     // What happens here depends on instruction and parameters
-
     if (commandPairs.getSize() < 1) {
-      Serial.println("Error: Command does not have instruction to execute");
+      if (statesPtr->debugMode) {
+        Serial.println("Error: Command does not have instruction to execute");
+      }
+      // sendErr(ERROR_ENUM::GCODE_PARSE);
       return false; // Uh oh!
     }
     int valAsInt = (int)(commandPairs[0].value);
@@ -139,12 +144,18 @@ public:
     switch (commandPairs[0].key) {
       case 'G':
         switch (valAsInt) {
+          case GCOM_DEBUG_MODE_T:
+            statesPtr->debugMode = !statesPtr->debugMode;
+            sendOk();
+            break;
+
           case GCOM_GREEDY_MOVE:
             if (!hasArg('X', commandPairs)) { return false; }
             if (!hasArg('Y', commandPairs)) { return false; }
             gx = getArg('X', commandPairs);
             gy = getArg('Y', commandPairs);
             holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, GREEDY));
+            // Ok or Err sent in holdData();
             break;
 
           case GCOM_LIN_MOVE:
@@ -153,6 +164,7 @@ public:
             gx = getArg('X', commandPairs);
             gy = getArg('Y', commandPairs);
             holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, LINE_FOLLOW));
+            // Ok or Err sent in holdData();
             break;
 
           case GCOM_ARC_MOVE_PEN_UP:
@@ -165,6 +177,7 @@ public:
             cx = getArg('I', commandPairs);
             cy = getArg('J', commandPairs);
             holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, cx + xoff, cy + yoff, CIRCULAR));
+            // Ok or Err sent in holdData();
             break;
 
           case GCOM_ARC_MOVE_PEN_DN:
@@ -176,7 +189,6 @@ public:
             gy = getArg('Y', commandPairs);
             cx = getArg('I', commandPairs);
             cy = getArg('J', commandPairs);
-            
             holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, cx + xoff, cy + yoff, CIRCULAR));
             break;
 
@@ -188,22 +200,27 @@ public:
 
           case GCOM_SEND_STATE:
             Serial.println(*statesPtr);
+            sendOk();
             break;
 
           case GCOM_UNITS_INCHES:
             statesPtr->setInches();
+            sendOk();
             break;
 
           case GCOM_UNITS_MILLIS:
             statesPtr->setMillis();
+            sendErr(ERROR_ENUM::GCODE_EXEC); // Not yet implemented
             break;
 
           case GCOM_ABSOLUTE_POS:
             statesPtr->setAbsolute();
+            sendOk();
             break;
 
           case GCOM_RELATIVE_POS:
             statesPtr->setRelative();
+            sendErr(ERROR_ENUM::GCODE_EXEC); // Not yet implemented
             break;
 
           case GCOM_SET_CUR_POS:
@@ -215,12 +232,16 @@ public:
             cy = getArg('J', commandPairs);
             statesPtr->curPos = Point(gx, gy);
             statesPtr->curOffset = Point(cx, cy) - statesPtr->curPos; // Assumes offsets of 0,0 if not given
+            sendOk();
             break;
 
           default:
-            Serial.print("Error: G command number [");
-            Serial.print(valAsInt);
-            Serial.println("] does not exist.");
+            if (statesPtr->debugMode) {
+              Serial.print("Error: G command number [");
+              Serial.print(valAsInt);
+              Serial.println("] does not exist.");
+            }
+            sendErr(ERROR_ENUM::GCODE_PARSE);
             return false;
             break;
 
@@ -230,10 +251,12 @@ public:
         switch (valAsInt) {
           case MCOM_UNCOND_HALT:
             statesPtr->moveState = StateHolder::HALTED; // May need changin?
+            sendOk();
             break;
 
           case MCOM_COND_HALT:
             Serial.println("MCOM_COND_HALT"); // TBD
+            sendErr(ERROR_ENUM::GCODE_EXEC); // Not yet implemented
             break;
 
           case MCOM_SET_SERVO:
@@ -245,6 +268,7 @@ public:
             } else {
               statesPtr->penState = StateHolder::PEN_UP; 
             }
+            // responds OK in main code
             break;
 
           case MCOM_CONTINUE:
@@ -253,29 +277,38 @@ public:
               break;
             }
             statesPtr->moveState = StateHolder::IDLE;
+            sendOk();
             break;
 
           case MCOM_SHUTDOWN:
             statesPtr->moveState = StateHolder::STOPPED;
+            sendOk();
             break;
 
           case MCOM_RESTART:
             statesPtr->moveState = StateHolder::RESTARTING;
+            sendOk();
             break;
 
           default:
-            Serial.print("Error: M command number [");
-            Serial.print(valAsInt);
-            Serial.println("] does not exist.");
+            if (statesPtr->debugMode) {
+              Serial.print("Error: M command number [");
+              Serial.print(valAsInt);
+              Serial.println("] does not exist.");
+            }
+            sendErr(ERROR_ENUM::GCODE_PARSE);
             return false;
             break;
 
         }
         break;
       default:
-        Serial.print("Error: Command letter [");
-        Serial.print(commandPairs[0].key);
-        Serial.println("] does not exist. Did mean to use [G] or [M]?");
+        if (statesPtr->debugMode) {
+          Serial.print("Error: Command letter [");
+          Serial.print(commandPairs[0].key);
+          Serial.println("] does not exist. Did mean to use [G] or [M]?");
+        }
+        sendErr(ERROR_ENUM::GCODE_PARSE);
         return false;
         break;
     } 
@@ -288,11 +321,19 @@ public:
     while (Serial.available() > 0) {
       // Because Vector doesn't typically exist here, will be much more interesting
       char data = Serial.read();
-      Serial.print(data);
+      if (statesPtr->debugMode) {
+        Serial.print(data);
+      }
 
       if (data == new_line || data == car_ret) { // Putty uses car_ret I believe, but still better to have both checked
-        Serial.print(">> ");
-        Serial.println(curCommand.setPrintFormat(Vector<char>::VPF_HORIZ_RAW));
+        if (curCommand.getSize() == 0) {
+          // sendErr(ERROR_ENUM::GCODE_RECEIV);
+          continue; // Keep going, ignore this data
+        }
+        if (statesPtr->debugMode) {
+          Serial.print(">> ");
+          Serial.println(curCommand.setPrintFormat(Vector<char>::VPF_HORIZ_RAW));
+        }
         Vector<KeyValueItem<char, double>> commandPairs = parseGCode(curCommand);
         bool toRet = translateGCode(commandPairs);
         curCommand.clear();

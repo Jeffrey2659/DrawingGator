@@ -41,8 +41,10 @@ void loop() {
   bool ready = gch.receiveGCode();
   if (sh.moveState != lastMoveState) {
     lastMoveState = sh.moveState;
-    Serial.print("Now in state ");
-    Serial.println(sh.moveState, HEX);
+    if (sh.debugMode) {
+      Serial.print("Now in state ");
+      Serial.println(sh.moveState, HEX);
+    }
   }
   
   if (sh.moveState == StateHolder::STOPPED || sh.moveState == StateHolder::HALTED) {
@@ -72,7 +74,8 @@ void loop() {
     if (sh.changedPWM) { // Servo should only move if not moving assembly right now
       sh.changedPWM = false;
       analogWrite(SERVO_PIN, sh.curPWM); // doesn't need to set moving, should be fast enough change
-      delay(250); // give servo time to act before moving on
+      delay(400); // give servo time to act before moving on
+      sendOk();
     }
   } // May set to move directly above
   if (sh.moveState == StateHolder::MOVING) {
@@ -123,6 +126,7 @@ void loop() {
       //delayMicroseconds(200);      
     } else { // and if no action to move, then it switches to idle
       sh.moveState = StateHolder::IDLE;
+      sendOk();
     }
   }  
 
