@@ -3,7 +3,7 @@ default_profile = "grbl"
 
 [gwrite.grbl]
 unit = "inch"
-document_start = "G20\nG90\nG92 X0 Y0 J5 I1.5\nM3 S70\n"
+document_start = "G20\nG90\nG92 X0 Y-4 J1 I1\nM3 S70\n"
 layer_start = ""
 
 # Travel move (pen up)
