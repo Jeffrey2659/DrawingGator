@@ -17,7 +17,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
     on_pause_clicked = None
     on_resume_clicked = None
     on_upload_svg = None
-
+    on_upload_image = None
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
@@ -248,8 +248,9 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         # If you add Pause/Resume buttons in .ui (names: pauseBtn/resumeBtn), hook them:
         # self.pauseBtn.clicked.connect(lambda: self.on_pause_clicked and self.on_pause_clicked())
         # self.resumeBtn.clicked.connect(lambda: self.on_resume_clicked and self.on_resume_clicked())
+        #self.actionUpload_Image.triggered.connect(self._ask_open_image)    # Presenter -> View API
 
-    # Presenter -> View API
+
     def set_ports(self, ports: List[str]) -> None:
         self.portOpt.clear()
         for p in ports:

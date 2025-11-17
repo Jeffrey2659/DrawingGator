@@ -66,7 +66,9 @@ class VpypeRunner(QObject):
         if not cfg_path:
             self.finished.emit(False, "", "config.toml not found (looked in standard locations).")
             return
-
+        if cfg_path:
+            print(f"Using config: {cfg_path}")
+            print(f"Config contents:\n{cfg_path.read_text()}") 
         program = "vpype"
         args = [
             "--config", cfg_path.as_posix(),         # <-- ensure string
