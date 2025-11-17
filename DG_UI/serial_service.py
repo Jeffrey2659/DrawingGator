@@ -18,6 +18,7 @@ class _SerialWorker(QObject):
         self._tx = deque()
     def start(self):
         self._running = True
+        self._tx.clear()
         self._timer = QTimer(self)
         self._timer.setInterval(1)                 # 1–5 ms polling
         self._timer.timeout.connect(self._poll)
@@ -30,6 +31,8 @@ class _SerialWorker(QObject):
         # drain TX
         while self._tx:
             data = self._tx.popleft()
+            print(f"[TX->SERIAL] Sending {data!r}", flush=True)
+
             try:
                 self._ser.write(data)
                 self._ser.flush()
@@ -139,6 +142,11 @@ class SerialService(QObject):
                 timeout=0.1,        # unblocks read loop periodically
                 write_timeout=1.0,
             )
+            self._ser.reset_input_buffer()   # clear RX
+            self._ser.reset_output_buffer()
+
+
+            
         except Exception as e:
             self._ser = None
             self.errorText.emit(f"Open failed: {e}")
@@ -165,7 +173,7 @@ class SerialService(QObject):
         self.connectionChanged.emit(True, f"{port_path} @ {baud}")
 
         # Optional: wake some firmwares
-        self.write(b"\r\n")
+       # self.write(b"\r\n")
         return True
 
     def close(self) -> None:

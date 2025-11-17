@@ -72,7 +72,9 @@ class VpypeRunner(QObject):
         program = "vpype"
         args = [
             "--config", cfg_path.as_posix(),         # <-- ensure string
-            "read", svg.as_posix(),
+            "read", svg.as_posix(), 
+            "scaleto", "8in", "12in",
+            "layout", "8inx12in",                  
             "linemerge", "reloop", "linesort",
             "gwrite",                                 # <-- no -p; uses [gwrite].default_profile
             Path(out_path).as_posix(),

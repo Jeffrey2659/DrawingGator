@@ -6,6 +6,7 @@ from serial_service import SerialService
 from gcode_streamer import GCodeStreamer
 from vpype_runner import VpypeRunner
 from pathlib import Path
+import serial
 import os
 
 
@@ -26,6 +27,9 @@ class Presenter:
         self.s = serial_service
         self.m = model
         self.streamer = GCodeStreamer(self.s)
+        self._state_block_active = False
+        self._state_lines: list[str] = []
+        self._rx_buffer = ""
 
 
         # This checks if the view has an attribute 'on_upload_svg' and if so, assigns the presenter's 'handle_upload_svg' method to it.
@@ -46,7 +50,7 @@ class Presenter:
         self.streamer.pausedChanged.connect(self._on_paused_changed)
 
         #used for logging received data from the device
-        self.s.dataReceived.connect(self._on_rx_log)
+        #self.s.dataReceived.connect(self._on_rx_log)
         #used for debugging raw received data
         self.s.dataReceived.connect(lambda b: print(f"[RX RAW] {b!r}", flush=True))
         #manual send
@@ -112,6 +116,13 @@ class Presenter:
             return
         self.m.reset_job_counters()
         self.v.log("Starting G-code stream…")
+        for raw in self.m.lines:
+            try:
+                line = raw.decode("ascii", errors="replace").rstrip()
+            except Exception:
+                line = repr(raw)
+            if line:
+                self.v.log(f">> {line}")
         self.streamer.start(self.m.lines)
         self.v.log("Streaming started: Debug Checkpoint 1.")
 
@@ -127,9 +138,50 @@ class Presenter:
 
     # ---- Service callbacks ----
     def _on_device_data(self, data: bytes):
-        for line in data.decode("utf-8", errors="replace").splitlines():
-            if line.strip():
-                self.v.log(f"<< {line.strip()}")
+        # 1) Decode and normalize newlines
+        text = data.decode("utf-8", errors="replace")
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+        # 2) Append to rolling buffer
+        self._rx_buffer += text
+
+        # 3) Extract complete lines one by one
+        while True:
+            nl = self._rx_buffer.find("\n")
+            if nl == -1:
+                # No full line yet; leave remainder for next chunk
+                break
+
+            raw_line = self._rx_buffer[:nl]
+            self._rx_buffer = self._rx_buffer[nl+1:]  # remove that line + '\n'
+
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            # Hand off to line-level handler
+            self._handle_rx_line(line)
+
+
+    def _handle_rx_line(self, line: str):
+        """Process a single complete line from the controller."""
+        # State-dump logic (G60 etc.) still works unchanged
+        if line.startswith("Printing State:"):
+            self._state_block_active = True
+            self._state_lines = [line]
+            return
+
+        if self._state_block_active:
+            self._state_lines.append(line)
+            if line.startswith("End of States"):
+                block = "\n".join("<< " + l for l in self._state_lines)
+                self.v.log(block)
+                self._state_block_active = False
+                self._state_lines = []
+            return
+
+        # Normal line
+        self.v.log(f"<< {line}")
 
     def _on_error_text(self, text: str):
         self.v.warn(text)
