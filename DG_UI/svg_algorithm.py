@@ -47,11 +47,11 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     img_path = "temp.pbm"
     img.save(img_path)
 
-    exe = find_potrace(potrace_path)
+    exe = find_potrace(None)
     print(f"Using potrace executable at: {exe}")
     # call subprocess since potrace does not work for my computer 
     try:
-        cmd = [potrace_path, img_path, "-s", "-o", str(output_path)]
+        cmd = [exe, img_path, "-s", "-o", str(output_path)]
         # Helpful diagnostics:
         print("Running:", cmd)
         print("PATH seen by Python:", os.environ.get("PATH", ""))
