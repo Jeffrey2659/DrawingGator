@@ -1,17 +1,17 @@
-#include "AlgorithmItems.h"
-#include "CustomVector.h"
-
-
 #ifndef STATE_HOLDER
 #define STATE_HOLDER
 
-class StateHolder {
-public:
+#include "AlgorithmClasses.h"
+#include "CustomVector.h"
+#include <Printable.h>
+
+struct StateHolder : public Printable {
   enum MOVE_STATE {
-    STOPPED,
-    HALTED,
-    IDLE,
-    MOVING
+    STOPPED,    // Needs specific signal to idle again
+    HALTED,     // Waits for user input
+    IDLE,       // Can move, just not anything queued
+    MOVING,     // Actively moving, can be cancelled
+    RESTARTING  // Recovering from a STOPPED state
   };
   enum SERVO_STATE {
     PEN_DOWN,
@@ -24,14 +24,27 @@ public:
     REL_INCHES,   // 10b
     REL_MILLIS    // 11b
   };
-private:
-  Point curLocation;
+
+  bool debugMode = false;
+
+  Point curPos;
+  Point curOffset;
   LegData curLeg;
-  double curSpeed;
-  UNIT_STATE unitState; 
-  SERVO_STATE penState;
-  MOVE_STATE moveState;
-public:
+  LegData nextLeg;
+
+  int curPWM = 0;
+  bool changedPWM = true;
+
+  int lMove = 0;
+  int rMove = 0;
+  bool changedMove = false;
+
+  bool toHalt = false;
+
+  UNIT_STATE unitState = ABS_INCHES; 
+  SERVO_STATE penState = PEN_UP;
+  MOVE_STATE moveState = RESTARTING;
+
   StateHolder() {};
 
   // Unit setters (NOT YET TESTED)
@@ -49,6 +62,17 @@ public:
     unitState = unitState | 0x01; // set bit 0
   }
 
+  void setPWM(int newPWM) {
+    curPWM = min(max(newPWM, 70), 240); // 240 is down, 70 is up
+    changedPWM = true;
+  }
+
+  void setMove(int l, int r) {
+    lMove = l; 
+    rMove = r;
+    changedMove = true;
+  }
+
   // Unit "getters" (NOT YET TESTED)
   // Just did it this way cause I felt like it
   bool isAbsolute() {
@@ -64,7 +88,53 @@ public:
     return !isInches(); // opposites
   }
 
+  bool hasNextLeg() {
+    return nextLeg.valid; // opposites
+  }
 
+  Point getTruePos() {
+    return (curPos + curOffset);
+  }
+
+  void setTruePos(Point newPos) {
+    curPos = newPos - curOffset;
+  }
+
+  // Debugging is god awful without this
+  size_t printTo(Print& p) const {
+    size_t n = 0;
+    n += p.println("Printing State:");
+
+    n += p.print("curPos: ");
+    n += p.println(curPos);
+    n += p.print("curOffset: ");
+    n += p.println(curOffset);
+
+    n += p.print("debugMode: ");
+    n += p.print(debugMode);
+    n += p.print(", curPWM: ");
+    n += p.print(curPWM);
+    n += p.print(", changedPWM: ");
+    n += p.print(changedPWM);
+    n += p.print(", changedMove: ");
+    n += p.print(changedMove);
+    n += p.print(", toHalt: ");
+    n += p.println(toHalt);
+
+    n += p.print("(lMove,rMove): ");
+    n += p.println(Point(lMove, rMove));
+
+    n += p.print("unitState: ");
+    n += p.print(unitState);
+    n += p.print(", penState: ");
+    n += p.print(penState);
+    n += p.print(", moveState: ");
+    n += p.println(moveState);
+
+    n += p.print("End of States");
+    
+    return n;
+  }
 };
 
 

@@ -1,8 +1,7 @@
-#include <Printable.h>
-
-
 #ifndef CUSTOM_VECT
 #define CUSTOM_VECT
+
+#include <Printable.h>
 
 // tired of not having this. Making my own implementation
 
@@ -21,7 +20,6 @@ struct KeyValueItem: public Printable {
     return n;
   }
 };
-
 
 template <typename T>
 class Vector : public Printable {
