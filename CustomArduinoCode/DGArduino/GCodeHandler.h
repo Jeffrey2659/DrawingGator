@@ -262,8 +262,14 @@ public:
           case MCOM_SET_SERVO:
             if (!hasArg('S', commandPairs)) { return false; }
             s = getArg('S', commandPairs);
+
+            if ((statesPtr->penState = StateHolder::PEN_DOWN) && (s > 240)) {
+              sendOk(); // If the pen is already down, just get out
+              break;
+            }
+
             statesPtr->setPWM(s);
-            if (s > 200) {                                     // May need changin?
+            if (s > 240) {                                     // May need changin?
               statesPtr->penState = StateHolder::PEN_DOWN; 
             } else {
               statesPtr->penState = StateHolder::PEN_UP; 
