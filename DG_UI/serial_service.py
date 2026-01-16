@@ -23,7 +23,7 @@ class _SerialWorker(QObject):
         self._timer.setInterval(1)                 # 1–5 ms polling
         self._timer.timeout.connect(self._poll)
         self._timer.start()
-    print("[_SerialWorker] timer polling started", flush=True)
+        print("[_SerialWorker] timer polling started", flush=True)
     @pyqtSlot()
     def _poll(self):
         if not (self._ser and self._ser.is_open):
