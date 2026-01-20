@@ -1,0 +1,1 @@
+*1/19/2026* Researching on how to implement new edge detection so there is no more double lines. https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html 
