@@ -10,6 +10,10 @@ import os
 import svgwrite
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+
+# adding open cv to be used for edge detection
+import cv2
+
 # parse SVG paths
 from svgpathtools import svg2paths
 from lxml import etree
@@ -20,24 +24,33 @@ from lxml import etree
 def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrace"):
     # add the path to the image
     # add conversion to greyscale here
-    image = Image.open(file_path)
-
+    #image = Image.open(file_path)
+    image = cv2.imread(file_path)
     # ADD CHECK FOR BACKGROUND BEING TRANSPARENT
-    if image.mode in ('RGBA', 'LA'):
-        # make it white for better processing
-        background = Image.new('RGB', image.size, (255, 255, 255))
-        if image.mode == 'RGBA':
-            background.paste(image, mask = image.split()[3])
-        else:
-            background.paste(image, mask=image.split()[1])
-        image = background
+################################################################################    
+    # WILL BE DONE LATER NOT NEEDED FOR NOW
+    # if image.mode in ('RGBA', 'LA'):
+    #     # make it white for better processing
+    #     background = Image.new('RGB', image.size, (255, 255, 255))
+    #     if image.mode == 'RGBA':
+    #         background.paste(image, mask = image.split()[3])
+    #     else:
+    #         background.paste(image, mask=image.split()[1])
+    #     image = background
+################################################################################
+    # convert to grayscale using open cv
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    image = image.convert('L')
-    width, height = image.size
+    #image = image.convert('L')
+    #width, height = image.size
+    # returns the opposite
+    height, width = image.shape
 
     # convert from pixel to cm/inch to display
     # using 96 DPI as that is a default
-    dpi = image.info.get('dpi', (96, 96))[0]
+    #dpi = image.info.get('dpi', (96, 96))[0]
+    # hard code the number for dpi
+    dpi = 96
     # inches
     width_inch = width / dpi
     height_inch = height / dpi
@@ -46,12 +59,19 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     height_cm = height_inch * 2.54
 
     # 0 - 255
-    img = image.point(lambda x: 0 if x < 128 else 255, '1')
+    #img = image.point(lambda x: 0 if x < 128 else 255, '1')
+    
+    # using open cv to threshold the image for better results
+    # https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html 
+    _, img = cv2.threshold(image, 128, 255, cv2.THRESH_BINARY)
     # output that potrace expects
     # https://potrace.sourceforge.net/ 
     img_path = "temp.pbm"
-    img.save(img_path)
+    #img.save(img_path)
 
+    # save using open cv
+    cv2.imwrite(img_path, img)
+    
     # call subprocess since potrace does not work for my computer 
     try:
         subprocess.run([potrace_path, img_path, "-s", "-o", output_path], check=True)
@@ -239,9 +259,10 @@ def display_svg(strokes):
 if __name__ == "__main__":
     #input_path = "images/shapes.png"
     #input_path = "images/drawinggator.jpeg"
-    input_path = "images/simple.png"
+    #input_path = "images/simple.png"
     #input_path = "images/roses.jpg"
     #input_path = "images/testing.png"
+    input_path = "images/prototype_design.jpg"
     output_path = "output.svg"
     potrace_executable = "potrace"
 
