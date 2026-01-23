@@ -4,6 +4,8 @@ from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QProgressBar,
 from DG_UI import Ui_MainWindow
 from PyQt6.QtCore import Qt
 from matplotlib_widget import MatplotlibWidget
+from color_widget import ColorWidget
+from pathlib import Path
 
 class ViewQt(QMainWindow, Ui_MainWindow):
     # Presenter assigns these callables at runtime:
@@ -19,6 +21,165 @@ class ViewQt(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
+
+        ### ADDING DIRECTORY PATH TO IMAGES SO THAT OPENS WHEN UPLOAD FILE IS SELECTED
+        self.default_image_dir = Path(__file__).parent.parent / "Interface" / "images"
+
+        #################################################################################
+        ############# CHANGING THE COLOR FOR THE WINDOW AND ALL THE BUTTONS #############
+        #################################################################################
+
+        ##################################################################################
+        ############# ALL CHANGES SHOULD BE MADE HERE FOR THE WINDOW DISPLAY #############
+        ##################################################################################
+
+        self.setStyleSheet("""
+        /* Main Window Background */
+        QMainWindow {
+            background-color: #faf5e4;
+        }
+        
+        /* Central Widget */
+        QWidget {
+            background-color: #faf5e4;
+            color: #4a4a4a;
+        }
+        
+        QPushButton {
+            background-color: #f5deb3;
+            color: #5a5a5a;
+            border: 1px solid #d9c5a0;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-weight: bold;
+        }
+        
+        QPushButton:hover {
+            background-color: #f0d19e;
+            border: 1px solid #c9b590;
+        }
+        
+        QPushButton:pressed {
+            background-color: #e5c68d;
+        }
+        
+        QPushButton#Color {
+            background-color: #a8d5ba;
+            color: #2d5a3d;
+        }
+        
+        QPushButton#Color:hover {
+            background-color: #98c5aa;
+        }
+        
+        QComboBox {
+            background-color: #ffffff;
+            color: #4a4a4a;
+            border: 1px solid #d9c5a0;
+            border-radius: 4px;
+            padding: 4px;
+        }
+        
+        QComboBox:hover {
+            border: 1px solid #c9b590;
+        }
+        
+        QComboBox::drop-down {
+            border: none;
+            width: 20px;
+        }
+        
+        QComboBox::down-arrow {
+            image: none;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 6px solid #5a5a5a;
+            margin-right: 5px;
+        }
+        
+        QComboBox QAbstractItemView {
+            background-color: #ffffff;
+            color: #4a4a4a;
+            selection-background-color: #f5deb3;
+            border: 1px solid #d9c5a0;
+        }
+        
+        QLabel {
+            color: #4a4a4a;
+            background-color: transparent;
+        }
+        
+        QPlainTextEdit, QTextEdit {
+            background-color: #ffffff;
+            color: #4a4a4a;
+            border: 1px solid #d9c5a0;
+            border-radius: 4px;
+        }
+        
+        QLineEdit {
+            background-color: #ffffff;
+            color: #4a4a4a;
+            border: 1px solid #d9c5a0;
+            border-radius: 4px;
+            padding: 4px;
+        }
+        
+        QLineEdit:focus {
+            border: 2px solid #f5deb3;
+        }
+                           
+        QMenuBar {
+            background-color: #faf5e4;
+            color: #4a4a4a;
+        }
+        
+        QMenuBar::item:selected {
+            background-color: #f5deb3;
+        }
+        
+        QMenu {
+            background-color: #faf5e4;
+            color: #4a4a4a;
+        }
+        
+        QMenu::item:selected {
+            background-color: #f5deb3;
+        }
+        
+        QStatusBar {
+            background-color: #faf5e4;
+            color: #4a4a4a;
+        }
+        
+        QProgressBar {
+            background-color: #ffffff;
+            color: #4a4a4a;
+            border: 1px solid #d9c5a0;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        QProgressBar::chunk {
+            background-color: #f5deb3;
+            border-radius: 3px;
+        }
+        
+        QDockWidget {
+            color: #4a4a4a;
+        }
+        
+        QDockWidget::title {
+            background-color: #f5deb3;
+            text-align: left;
+            padding-left: 5px;
+            padding-top: 4px;
+            padding-bottom: 4px;
+            border: 1px solid #d9c5a0;
+        }
+        """)
+        #################################################################################
+        #################################################################################
+
         self.setWindowTitle("Drawing Gator")
 
         #manual command dock
@@ -62,7 +223,6 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self._progress.setValue(0)
         self._progress.setTextVisible(True)
         self.statusbar.addPermanentWidget(self._progress, 1)
-
 
         # manual send
 
@@ -128,6 +288,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
             return int(txt)
         except ValueError:
             return 115200
+        
     def _send_manual_from_line(self):
         txt = self.manualLine.text().strip()
         if txt and self.on_manual_send:
@@ -139,7 +300,27 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         if txt and self.on_manual_send:
             self.on_manual_send(txt)
             self.manualLine.clear()
+
     def _ask_open_svg(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Open Image or SVG", "", "Image or SVG Files (*.svg *.png *.jpg *.jpeg *.bmp))")
+        # ADDINF THE PATH
+        if self.default_image_dir.exists():
+            init_dir = str(self.default_image_dir)
+        else:
+            init_dir = ""
+            self.warn(f"Folder not found")
+
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Image",
+            init_dir,
+            "Image or SVG File (*.svg *.png *.jpg *.jpeg *.bmp);;All Files (*.*)"
+        )
         if path and self.on_upload_svg:
             self.on_upload_svg(path)
+
+
+    def open_color_window(self):
+        self.color_window = ColorWidget(self)
+        # call the function to display the color on the image
+        self.color_window.color_sel.connect(self.mpl_widget.update_colors)
+        self.color_window.show()
