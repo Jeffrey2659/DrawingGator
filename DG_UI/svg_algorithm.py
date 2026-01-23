@@ -11,13 +11,9 @@ import os, shutil, subprocess
 import svgwrite
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-
-# adding open cv to be used for edge detection
-import cv2
-
 # parse SVG paths
 from svgpathtools import svg2paths
-from lxml import etree
+
 # REFERENCE-ISH https://github.com/Bhomik04/image-to-svg/blob/main/python%20practice.py
 
 
@@ -38,62 +34,21 @@ def find_potrace(explicit: str | None = None) -> str:
     return exe
 
 
-
-
-# REFERENCE-ISH https://github.com/Bhomik04/image-to-svg/blob/main/python%20practice.py
-
 # function to convert png/jpg to svg
 def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrace"):
     # add the path to the image
     # add conversion to greyscale here
-    #image = Image.open(file_path)
-    image = cv2.imread(file_path)
-    # ADD CHECK FOR BACKGROUND BEING TRANSPARENT
-################################################################################    
-    # WILL BE DONE LATER NOT NEEDED FOR NOW
-    # if image.mode in ('RGBA', 'LA'):
-    #     # make it white for better processing
-    #     background = Image.new('RGB', image.size, (255, 255, 255))
-    #     if image.mode == 'RGBA':
-    #         background.paste(image, mask = image.split()[3])
-    #     else:
-    #         background.paste(image, mask=image.split()[1])
-    #     image = background
-################################################################################
-    # convert to grayscale using open cv
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    #image = image.convert('L')
-    #width, height = image.size
-    # returns the opposite
-    height, width = image.shape
-
-    # convert from pixel to cm/inch to display
-    # using 96 DPI as that is a default
-    #dpi = image.info.get('dpi', (96, 96))[0]
-    # hard code the number for dpi
-    dpi = 96
-    # inches
-    width_inch = width / dpi
-    height_inch = height / dpi
-    # cm
-    width_cm = width_inch * 2.54
-    height_cm = height_inch * 2.54
-
+    image = Image.open(file_path).convert('L')
+    width, height = image.size
     # 0 - 255
-    #img = image.point(lambda x: 0 if x < 128 else 255, '1')
-    
-    # using open cv to threshold the image for better results
-    # https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html 
-    _, img = cv2.threshold(image, 128, 255, cv2.THRESH_BINARY)
+    img = image.point(lambda x: 0 if x < 128 else 255, '1')
     # output that potrace expects
     # https://potrace.sourceforge.net/ 
     img_path = "temp.pbm"
-    #img.save(img_path)
+    img.save(img_path)
 
-    # save using open cv
-    cv2.imwrite(img_path, img)
-    
+    exe = find_potrace(potrace_path)
+    print(f"Using potrace executable at: {exe}")
     # call subprocess since potrace does not work for my computer 
     try:
         cmd = [potrace_path, img_path, "-s", "-o", str(output_path)]
@@ -112,17 +67,13 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
                 os.remove(img_path)
             except OSError:
                 pass
- 
 
     # list of plack pixels and coordinates we need 
     pixels = np.array(img)
     lines = [(x, y) for y in range(height) for x in range(width) if pixels[y, x] == 0]
-    
-    #### LET'S TRY AND ADD PAPER SIZE ####
-
     # return the lines and output_path in which is saved
     # also width and height for scaling purposes
-    return lines, width, height, width_inch, height_inch, width_cm, height_cm, output_path
+    return lines, width, height, output_path
 
     # get the size of the image
     # width, height = image.size
@@ -146,32 +97,6 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     # print("SVG created successfully!")
     # return lines, width, 
 
-
-def convert_to_a4(svg_in, svg_out, original_width, original_height): 
-    tree = etree.parse(svg_in) 
-    root = tree.getroot() 
-    
-    # Define A4 page size in millimeters 
-    a4_width, a4_height = 210, 297 
-    
-    # Update SVG root attributes 
-    root.attrib['width'] = f'{a4_width}mm' 
-    root.attrib['height'] = f'{a4_height}mm' 
-    root.attrib['viewBox'] = f'0 0 {a4_width} {a4_height}' 
-    root.attrib['preserveAspectRatio'] = 'xMidYMid meet' 
-    
-    scale_x = a4_width / original_width
-    scale_y = a4_height / original_height
-    
-    scale = min(scale_x, scale_y)
-    
-    offset_x = (a4_width - original_width * scale) / 2
-    offset_y = (a4_height - original_height * scale) / 2
-    
-    for g in root.findall(".//{http://www.w3.org/2000/svg}g"): 
-        g.attrib['transform'] = f"translate({offset_x},{offset_y + original_height * scale}) scale({scale},{-scale})" 
-        
-    tree.write(svg_out, pretty_print=True) 
 
 ##############################################################################################
                     ### NOT NEEDED BUT USED FOR TESTING PURPOSES ###
@@ -198,9 +123,7 @@ def extract_coordinates(svg_path, samples=50):
             prev_end = end
         if stroke:
             all_strokes.append(stroke)
-
-    num_strokes = len(all_strokes)
-    return all_strokes, num_strokes
+    return all_strokes
 
 # Adding a simulation to see how the drawing would look like
 def animation_simulation(strokes):
@@ -292,16 +215,15 @@ def display_svg(strokes):
 # add main
 if __name__ == "__main__":
     #input_path = "images/shapes.png"
-    #input_path = "images/drawinggator.jpeg"
+    input_path = "images/drawinggator.jpeg"
     #input_path = "images/simple.png"
     #input_path = "images/roses.jpg"
     #input_path = "images/testing.png"
-    input_path = "images/prototype_design.jpg"
     output_path = "output.svg"
-    potrace_executable = "potrace"
+    potrace_executable = r"C:\Program Files\Potrace\potrace.exe"
 
-    lines, width, height, width_inch, height_inch, width_cm, height_cm, output_path = conversion_svg(input_path, output_path, potrace_executable)
-    convert_to_a4(output_path, output_path, width, height)
+
+    conversion_svg(input_path, output_path, potrace_executable)
     # animation lines
-    strokes, num_strokes = extract_coordinates(output_path, samples=30)
+    strokes = extract_coordinates(output_path, samples=30)
     animation_simulation(strokes)
