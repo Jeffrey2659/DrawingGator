@@ -1,13 +1,12 @@
 # Pillow as a tool to import and that handles image processing
 from PIL import Image 
 import numpy as np
-from pathlib import Path
 # let's consider using potrace for clearer images
 # idk why i can't install this
 # import potrace
 # use a subprocess that calls potrace (LATER USE)
 import subprocess 
-import os, shutil, subprocess
+import os
 import svgwrite
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -18,27 +17,6 @@ import cv2
 # parse SVG paths
 from svgpathtools import svg2paths
 from lxml import etree
-# REFERENCE-ISH https://github.com/Bhomik04/image-to-svg/blob/main/python%20practice.py
-
-
-def find_potrace(explicit: str | None = None) -> str:
-    if explicit:
-        exe = Path(explicit)
-        if os.name == "nt" and exe.suffix.lower() != ".exe" and not exe.exists():
-            exe = exe.with_suffix(".exe")
-        if not exe.exists():
-            raise FileNotFoundError(f"potrace not found at: {exe}")
-        return str(exe)
-    # Try PATH
-    exe = shutil.which("potrace") or shutil.which("potrace.exe")
-    if not exe:
-        raise FileNotFoundError(
-            "potrace not found on PATH. Either add it to PATH or pass its full path."
-        )
-    return exe
-
-
-
 
 # REFERENCE-ISH https://github.com/Bhomik04/image-to-svg/blob/main/python%20practice.py
 
@@ -96,23 +74,11 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     
     # call subprocess since potrace does not work for my computer 
     try:
-        cmd = [potrace_path, img_path, "-s", "-o", str(output_path)]
-        # Helpful diagnostics:
-        print("Running:", cmd)
-        print("PATH seen by Python:", os.environ.get("PATH", ""))
-        res = subprocess.run(cmd, capture_output=True, text=True)
-        if res.returncode != 0:
-            raise RuntimeError(
-                f"potrace failed (exit {res.returncode}).\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}"
-            )
+        subprocess.run([potrace_path, img_path, "-s", "-o", output_path], check=True)
         print("SVG created successfully!")
     finally:
-        if os.path.exists(img_path):
-            try:
-                os.remove(img_path)
-            except OSError:
-                pass
- 
+        if os.path.exists(img_path):    
+            os.remove(img_path)
 
     # list of plack pixels and coordinates we need 
     pixels = np.array(img)
