@@ -1,13 +1,12 @@
 # Pillow as a tool to import and that handles image processing
 from PIL import Image 
 import numpy as np
-from pathlib import Path
 # let's consider using potrace for clearer images
 # idk why i can't install this
 # import potrace
 # use a subprocess that calls potrace (LATER USE)
 import subprocess 
-import os, shutil, subprocess
+import os
 import svgwrite
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -18,27 +17,6 @@ import cv2
 # parse SVG paths
 from svgpathtools import svg2paths
 from lxml import etree
-# REFERENCE-ISH https://github.com/Bhomik04/image-to-svg/blob/main/python%20practice.py
-
-
-def find_potrace(explicit: str | None = None) -> str:
-    if explicit:
-        exe = Path(explicit)
-        if os.name == "nt" and exe.suffix.lower() != ".exe" and not exe.exists():
-            exe = exe.with_suffix(".exe")
-        if not exe.exists():
-            raise FileNotFoundError(f"potrace not found at: {exe}")
-        return str(exe)
-    # Try PATH
-    exe = shutil.which("potrace") or shutil.which("potrace.exe")
-    if not exe:
-        raise FileNotFoundError(
-            "potrace not found on PATH. Either add it to PATH or pass its full path."
-        )
-    return exe
-
-
-
 
 # REFERENCE-ISH https://github.com/Bhomik04/image-to-svg/blob/main/python%20practice.py
 
@@ -96,23 +74,11 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     
     # call subprocess since potrace does not work for my computer 
     try:
-        cmd = [potrace_path, img_path, "-s", "-o", str(output_path)]
-        # Helpful diagnostics:
-        print("Running:", cmd)
-        print("PATH seen by Python:", os.environ.get("PATH", ""))
-        res = subprocess.run(cmd, capture_output=True, text=True)
-        if res.returncode != 0:
-            raise RuntimeError(
-                f"potrace failed (exit {res.returncode}).\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}"
-            )
+        subprocess.run([potrace_path, img_path, "-s", "-o", output_path], check=True)
         print("SVG created successfully!")
     finally:
-        if os.path.exists(img_path):
-            try:
-                os.remove(img_path)
-            except OSError:
-                pass
- 
+        if os.path.exists(img_path):    
+            os.remove(img_path)
 
     # list of plack pixels and coordinates we need 
     pixels = np.array(img)
@@ -176,31 +142,66 @@ def convert_to_a4(svg_in, svg_out, original_width, original_height):
 ##############################################################################################
                     ### NOT NEEDED BUT USED FOR TESTING PURPOSES ###
 # extract the coordinates
+# looking at the svg there are 2 paths created inner and outer
+# consider removing the inner lines 
 def extract_coordinates(svg_path, samples=50):
+    # adding a new function for area of path
+    def path_area(line):
+        # using shoelace formula
+        # https://www.101computing.net/the-shoelace-algorithm/
+        area = 0.0
+        for i in range(len(line)):
+            x1, y1 = line[i]
+            # wrap around the points
+            x2, y2 = line[(i + 1) % len(line)]
+            area += x1 * y2 - x2 * y1
+        return abs(area) / 2.0
     # FIXED STOKES 
     # using the svg library to extract paths 
-    paths, attributes = svg2paths(svg_path)
+    #paths, attributes = svg2paths(svg_path)
+    paths, _ = svg2paths(svg_path)
     all_strokes = []
-
+    # start by processing each path 
     for path in paths:
-        stroke = []
-        prev_end = None
-        for segment in path:
-            start = segment.point(0)
-            end = segment.point(1)
-            if prev_end is not None and abs(start - prev_end) > 1e-6:
-                if stroke:
-                    all_strokes.append(stroke)
-                stroke = []
-            for t in np.linspace(0, 1, samples):
-                point = segment.point(t)
-                stroke.append((point.real, point.imag))
-            prev_end = end
-        if stroke:
-            all_strokes.append(stroke)
+        # split into continuous subpaths
+        subpath = path.continuous_subpaths()
+        stroke = [] # area and points
+        for segment in subpath:
+            point = []
+            for seg in segment:
+                for t in np.linspace(0, 1, samples):
+                    p = seg.point(t)
+                    point.append((p.real, p.imag))
+            # less than 3 points cannot form a closed shape so skip
+            if len(point) < 3:
+                continue
+            area = abs(path_area(point))
+            stroke.append((area, point))
+        if not stroke:
+            continue
+        outer = max(stroke, key=lambda x: x[0])
+        all_strokes.append(outer[1])
+    return all_strokes, len(all_strokes)
 
-    num_strokes = len(all_strokes)
-    return all_strokes, num_strokes
+    # for path in paths:
+    #     stroke = []
+    #     prev_end = None
+    #     for segment in path:
+    #         start = segment.point(0)
+    #         end = segment.point(1)
+    #         if prev_end is not None and abs(start - prev_end) > 1e-6:
+    #             if stroke:
+    #                 all_strokes.append(stroke)
+    #             stroke = []
+    #         for t in np.linspace(0, 1, samples):
+    #             point = segment.point(t)
+    #             stroke.append((point.real, point.imag))
+    #         prev_end = end
+    #     if stroke:
+    #         all_strokes.append(stroke)
+
+    # num_strokes = len(all_strokes)
+    # return all_strokes, num_strokes
 
 # Adding a simulation to see how the drawing would look like
 def animation_simulation(strokes):
