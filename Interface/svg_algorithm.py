@@ -17,8 +17,29 @@ import cv2
 # parse SVG paths
 from svgpathtools import svg2paths
 from lxml import etree
-
+import re
 # REFERENCE-ISH https://github.com/Bhomik04/image-to-svg/blob/main/python%20practice.py
+
+
+# remove the inner path from svg which is structured as 
+# M ... z m ... z
+def split_svg_paths(svg_path):
+    tree = etree.parse(svg_path)
+    root = tree.getroot()
+    namespace = {'svg': 'http://www.w3.org/2000/svg'}
+    paths = root.findall('.//svg:path', namespaces=namespace)
+    for elements in paths:
+        d = elements.get('d')
+        if not d:
+            continue
+        # split at 'M' or 'm' to get subpaths
+        subpaths = re.split(r'(?=[Mm])', d)
+        # clean up any empty strings
+        subpaths = [s.strip() for s in subpaths if s.strip()]
+
+        if len(subpaths) > 1:
+            elements.set('d', subpaths[0])
+    tree.write(svg_path, pretty_print=True)
 
 # function to convert png/jpg to svg
 def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrace"):
@@ -75,6 +96,7 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     # call subprocess since potrace does not work for my computer 
     try:
         subprocess.run([potrace_path, img_path, "-s", "-o", output_path], check=True)
+        split_svg_paths(output_path)
         print("SVG created successfully!")
     finally:
         if os.path.exists(img_path):    
