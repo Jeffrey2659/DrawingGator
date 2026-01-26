@@ -1,6 +1,5 @@
-# Custom Arduino Code
+# Custom Arduino Code: Pathing
 
-I am adding a readme here to include any links to documents where I have done research regarding setting up and working with the arduino environment we are planning on using.
+This is a rewrite of my old code to hopefully have more specific and well organized program control AND to have pathing that does not rely on traversal steps and instead on path generation and following, much more like standard 3d printers
 
-- G-Code personal notes doc (10/29/2025): [https://docs.google.com/document/d/1KR4UY6RcypoRdKU2sxLuKcLxouKeL6Bd9PDaLNjAV2U/edit?usp=sharing](https://docs.google.com/document/d/1KR4UY6RcypoRdKU2sxLuKcLxouKeL6Bd9PDaLNjAV2U/edit?usp=sharing)
 
