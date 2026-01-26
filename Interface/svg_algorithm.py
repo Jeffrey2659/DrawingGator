@@ -142,31 +142,66 @@ def convert_to_a4(svg_in, svg_out, original_width, original_height):
 ##############################################################################################
                     ### NOT NEEDED BUT USED FOR TESTING PURPOSES ###
 # extract the coordinates
+# looking at the svg there are 2 paths created inner and outer
+# consider removing the inner lines 
 def extract_coordinates(svg_path, samples=50):
+    # adding a new function for area of path
+    def path_area(line):
+        # using shoelace formula
+        # https://www.101computing.net/the-shoelace-algorithm/
+        area = 0.0
+        for i in range(len(line)):
+            x1, y1 = line[i]
+            # wrap around the points
+            x2, y2 = line[(i + 1) % len(line)]
+            area += x1 * y2 - x2 * y1
+        return abs(area) / 2.0
     # FIXED STOKES 
     # using the svg library to extract paths 
-    paths, attributes = svg2paths(svg_path)
+    #paths, attributes = svg2paths(svg_path)
+    paths, _ = svg2paths(svg_path)
     all_strokes = []
-
+    # start by processing each path 
     for path in paths:
-        stroke = []
-        prev_end = None
-        for segment in path:
-            start = segment.point(0)
-            end = segment.point(1)
-            if prev_end is not None and abs(start - prev_end) > 1e-6:
-                if stroke:
-                    all_strokes.append(stroke)
-                stroke = []
-            for t in np.linspace(0, 1, samples):
-                point = segment.point(t)
-                stroke.append((point.real, point.imag))
-            prev_end = end
-        if stroke:
-            all_strokes.append(stroke)
+        # split into continuous subpaths
+        subpath = path.continuous_subpaths()
+        stroke = [] # area and points
+        for segment in subpath:
+            point = []
+            for seg in segment:
+                for t in np.linspace(0, 1, samples):
+                    p = seg.point(t)
+                    point.append((p.real, p.imag))
+            # less than 3 points cannot form a closed shape so skip
+            if len(point) < 3:
+                continue
+            area = abs(path_area(point))
+            stroke.append((area, point))
+        if not stroke:
+            continue
+        outer = max(stroke, key=lambda x: x[0])
+        all_strokes.append(outer[1])
+    return all_strokes, len(all_strokes)
 
-    num_strokes = len(all_strokes)
-    return all_strokes, num_strokes
+    # for path in paths:
+    #     stroke = []
+    #     prev_end = None
+    #     for segment in path:
+    #         start = segment.point(0)
+    #         end = segment.point(1)
+    #         if prev_end is not None and abs(start - prev_end) > 1e-6:
+    #             if stroke:
+    #                 all_strokes.append(stroke)
+    #             stroke = []
+    #         for t in np.linspace(0, 1, samples):
+    #             point = segment.point(t)
+    #             stroke.append((point.real, point.imag))
+    #         prev_end = end
+    #     if stroke:
+    #         all_strokes.append(stroke)
+
+    # num_strokes = len(all_strokes)
+    # return all_strokes, num_strokes
 
 # Adding a simulation to see how the drawing would look like
 def animation_simulation(strokes):
