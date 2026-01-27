@@ -79,8 +79,51 @@ Vector2d getPosFromLengths(double leftLen, double rightLen) {
 	return Vector2d(xDist, yDist);
 }
 
+
+// X is left length, Y is right length, just using point return as packet type
+Vector2d getLengthsFromPos(Vector2d pos) {
+  double leftLen = pos.Magnitude();
+	double rightLen = (Vector2d(CANVAS_WIDTH, 0) - pos).Magnitude();
+	return Vector2d(leftLen, rightLen);
+}
+
+// Gets next lengths to rotate motors to
+// DEPRECATED
+Vector2d getBestLengthDeltas(StateHolder& stateHolder) {
+  Vector2d curPos = stateHolder.getTruePos();
+  Vector2d curLengths = getLengthsFromPos(curPos);
+  LegData& curLegData = stateHolder.curLeg;
+  Vector2d bestLengths = Vector2d(0, 0);
+  double bestDist = getAlgoDist(curPos, curLegData);
+  for (int i = -2; i <= 2; i++) {
+    for (int j = -2; j <= 2; j++) {
+      Vector2d lengths = Vector2d(i*MIN_STEP_DIST, j*MIN_STEP_DIST);
+      Vector2d testPoint = getPosFromLengths(curLengths.X + lengths.X, curLengths.Y + lengths.Y);
+      double curDist = getAlgoDist(testPoint, curLegData);
+      if (curDist < bestDist) {
+        bestDist = curDist;
+        bestLengths = lengths;
+      }
+    }
+  }
+  return bestLengths; // IN INCHES
+}
+
+void movePosByLengths(Vector2d lengths, StateHolder& sh) {
+  Vector2d curLens = getLengthsFromPos(sh.getTruePos());
+  sh.setTruePos(getPosFromLengths(curLens.X + lengths.X, curLens.Y + lengths.Y));
+}
+
 bool isNearby(Vector2d a, Vector2d b) {
   return (a - b).Magnitude() < MIN_STEP_DIST*2;
+}
+
+void setMovesFromLeg(StateHolder& sh) {
+  Vector2d curLens = getLengthsFromPos(sh.getTruePos());
+  Vector2d goalLens = getLengthsFromPos(sh.curLeg.goal);
+  Vector2d lengthDelta = goalLens - curLens;
+  sh.lMove = round(lengthDelta.X/MIN_STEP_DIST);
+  sh.rMove = round(lengthDelta.Y/MIN_STEP_DIST);
 }
 
 void checkForLegSplit(StateHolder& sh) {
@@ -119,40 +162,6 @@ void checkForLegSplit(StateHolder& sh) {
       Serial.println(sh.curLeg.algo);
       break;
   }
-}
-
-// X is left length, Y is right length, just using point return as packet type
-Vector2d getLengthsFromPos(Vector2d pos) {
-  double leftLen = pos.Magnitude();
-	double rightLen = (Vector2d(CANVAS_WIDTH, 0) - pos).Magnitude();
-	return Vector2d(leftLen, rightLen);
-}
-
-// Gets next lengths to rotate motors to
-// DEPRECATED
-Vector2d getBestLengthDeltas(StateHolder& stateHolder) {
-  Vector2d curPos = stateHolder.getTruePos();
-  Vector2d curLengths = getLengthsFromPos(curPos);
-  LegData& curLegData = stateHolder.curLeg;
-  Vector2d bestLengths = Vector2d(0, 0);
-  double bestDist = getAlgoDist(curPos, curLegData);
-  for (int i = -2; i <= 2; i++) {
-    for (int j = -2; j <= 2; j++) {
-      Vector2d lengths = Vector2d(i*MIN_STEP_DIST, j*MIN_STEP_DIST);
-      Vector2d testPoint = getPosFromLengths(curLengths.X + lengths.X, curLengths.Y + lengths.Y);
-      double curDist = getAlgoDist(testPoint, curLegData);
-      if (curDist < bestDist) {
-        bestDist = curDist;
-        bestLengths = lengths;
-      }
-    }
-  }
-  return bestLengths; // IN INCHES
-}
-
-void movePosByLengths(Vector2d lengths, StateHolder& sh) {
-  Vector2d curLens = getLengthsFromPos(sh.getTruePos());
-  sh.setTruePos(getPosFromLengths(curLens.X + lengths.X, curLens.Y + lengths.Y));
 }
 
 #endif // ALGO_METHODS

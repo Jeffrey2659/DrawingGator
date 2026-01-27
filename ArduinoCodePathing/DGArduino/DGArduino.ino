@@ -56,7 +56,8 @@ void loop() {
       sh.curLeg = sh.nextLeg;
       sh.curLeg.start = sh.getTruePos();
       sh.nextLeg = LegData();
-      checkForLegSplit(sh); // gotta check
+      checkForLegSplit(sh);
+      setMovesFromLeg(sh);
       sh.moveState = StateHolder::MOVING; // moving stepper motors soon by leg
     } else if (sh.changedMove) {
       sh.moveState = StateHolder::MOVING; // moving stepper motors soon, but manually
@@ -73,14 +74,13 @@ void loop() {
   if (sh.moveState == StateHolder::MOVING) {
     // Check if there is something to do next
     if (sh.curLeg.valid) {
-      
-      // TODO: THIS WHOLE PROCESS NEEDS TO CHANGE
-      Vector2d bestLengthDelta = getBestLengthDeltas(sh);
-
       unsigned long runTimeMillis = millis();
       
-
+      trySteps(sh);
       
+      /*
+      // TODO: THIS WHOLE PROCESS NEEDS TO CHANGE
+      Vector2d bestLengthDelta = getBestLengthDeltas(sh);
       movePosByLengths(bestLengthDelta, sh);
       // Check if the next point is same as current pos
       if ((bestLengthDelta/MIN_STEP_DIST).Magnitude() < MIN_STEP_DIST/2) {
@@ -88,6 +88,7 @@ void loop() {
         sh.curLeg = sh.nextLeg;
         sh.nextLeg = LegData();
         checkForLegSplit(sh);
+        setMovesFromLeg(sh);
         if (!sh.curLeg.valid) { // Only move to idle if really done
           sh.moveState = StateHolder::IDLE;
         }
@@ -96,11 +97,18 @@ void loop() {
         sh.rMove = round(bestLengthDelta.Y/MIN_STEP_DIST);
         sh.changedMove = true;
       }
+      */
       
     } else {
       sh.moveState == StateHolder::IDLE;
     }
 
+    if (!sh.changedMove) {
+      sh.moveState = StateHolder::IDLE;
+      sendOk();
+    }
+
+    /* TODO: CHANGE THIS LOGIC FOR NEW ALGORITHM
     // Then, if there is, (or if a move was placed) perform the move
     if (sh.changedMove) {
       sh.changedMove = false;
@@ -111,6 +119,7 @@ void loop() {
       sh.moveState = StateHolder::IDLE;
       sendOk();
     }
+    */
   }  
 
 }
