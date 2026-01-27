@@ -7,6 +7,7 @@
 // Set mechanical parameters in AlgorithmItems.h
 
 bool LED_on = false;
+
 StateHolder sh;
 GCodeHandler gch(sh);
 
@@ -27,6 +28,7 @@ void loop() {
   // ALWAYS continue receiving GCode.
   // Stopping this means cannot change state from any input
   bool ready = gch.receiveGCode();
+
   if (sh.moveState != lastMoveState) {
     lastMoveState = sh.moveState;
     if (sh.debugMode) {
@@ -37,7 +39,8 @@ void loop() {
   
   if (sh.moveState == StateHolder::STOPPED || sh.moveState == StateHolder::HALTED) {
     return; // Don't do anything below
-  } else if (sh.moveState == StateHolder::RESTARTING) {
+  } 
+  else if (sh.moveState == StateHolder::RESTARTING) {
     // clear out current actions
     sh.curLeg = LegData();
     sh.nextLeg = LegData();
@@ -45,15 +48,15 @@ void loop() {
 
     sh.moveState = StateHolder::IDLE; // move along
     return;
-  }
-
-  if (sh.moveState == StateHolder::IDLE) {
+  } 
+  else if (sh.moveState == StateHolder::IDLE) {
     bool hasCurLeg = sh.curLeg.valid;
     bool hasNextLeg = sh.nextLeg.valid;
     if (!hasCurLeg && hasNextLeg) {
       sh.curLeg = sh.nextLeg;
       sh.curLeg.start = sh.getTruePos();
       sh.nextLeg = LegData();
+      checkForLegSplit(sh); // gotta check
       sh.moveState = StateHolder::MOVING; // moving stepper motors soon by leg
     } else if (sh.changedMove) {
       sh.moveState = StateHolder::MOVING; // moving stepper motors soon, but manually
@@ -66,21 +69,34 @@ void loop() {
       sendOk();
     }
   } // May set to move directly above
+  
   if (sh.moveState == StateHolder::MOVING) {
     // Check if there is something to do next
     if (sh.curLeg.valid) {
+      
+      // TODO: THIS WHOLE PROCESS NEEDS TO CHANGE
       Vector2d bestLengthDelta = getBestLengthDeltas(sh);
+
+      unsigned long runTimeMillis = millis();
+      
+
+      
       movePosByLengths(bestLengthDelta, sh);
       // Check if the next point is same as current pos
       if ((bestLengthDelta/MIN_STEP_DIST).Magnitude() < MIN_STEP_DIST/2) {
         // if same as current pos, no more movements, leg is OVER!
-        sh.moveState = StateHolder::IDLE;
-        sh.curLeg = LegData();
+        sh.curLeg = sh.nextLeg;
+        sh.nextLeg = LegData();
+        checkForLegSplit(sh);
+        if (!sh.curLeg.valid) { // Only move to idle if really done
+          sh.moveState = StateHolder::IDLE;
+        }
       } else { // if it is different, then make the move!
         sh.lMove = round(bestLengthDelta.X/MIN_STEP_DIST);
         sh.rMove = round(bestLengthDelta.Y/MIN_STEP_DIST);
         sh.changedMove = true;
       }
+      
     } else {
       sh.moveState == StateHolder::IDLE;
     }

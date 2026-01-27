@@ -61,26 +61,30 @@ struct LegData : public Printable {
   Vector2d center;
   Algorithm algo;
   bool valid;
+  unsigned int speed; // 1/4 units per minute (or per 1000 millis) (inches in our case, mm not yet configured)
   LegData() {
     start = Vector2d(0, 0);
     goal = Vector2d(0, 0);
     center = Vector2d(0, 0);
     algo = RAPID_LINE;
     valid = false;
+    speed = 120; // 1/2" per second
   }
-  LegData(double sx, double sy, double gx, double gy, Algorithm alg) {
+  LegData(double sx, double sy, double gx, double gy, Algorithm alg, unsigned int move_speed) {
     start = Vector2d(sx, sy);
     goal = Vector2d(gx, gy);
     center = Vector2d(0, 0);
     algo = alg;
     valid = true;
+    speed = move_speed;
   }
-  LegData(double sx, double sy, double gx, double gy, double cx, double cy, Algorithm alg) {
+  LegData(double sx, double sy, double gx, double gy, double cx, double cy, Algorithm alg, unsigned int move_speed) {
     start = Vector2d(sx, sy);
     goal = Vector2d(gx, gy);
     center = Vector2d(cx, cy);
     algo = alg;
     valid = true;
+    speed = move_speed;
   }
   size_t printTo(Print& p) const {
     size_t n = 0;

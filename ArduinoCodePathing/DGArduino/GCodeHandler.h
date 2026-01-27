@@ -141,6 +141,7 @@ public:
     double yoff = statesPtr->curOffset.Y;
     double gx, gy, cx, cy;
     int s, l, r;
+    unsigned int f;
     switch (commandPairs[0].key) {
       case 'G':
         switch (valAsInt) {
@@ -154,7 +155,9 @@ public:
             if (!hasArg('Y', commandPairs)) { return false; }
             gx = getArg('X', commandPairs);
             gy = getArg('Y', commandPairs);
-            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, RAPID_LINE));
+            f = getArg('F', commandPairs);
+            f = (f != 0 ? f : statesPtr->curMoveSpeed );
+            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, RAPID_LINE, f*2)); // Speeeed!
             // Ok or Err sent in holdData();
             break;
 
@@ -163,7 +166,9 @@ public:
             if (!hasArg('Y', commandPairs)) { return false; }
             gx = getArg('X', commandPairs);
             gy = getArg('Y', commandPairs);
-            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, SPLIT_LINE));
+            f = getArg('F', commandPairs);
+            f = (f != 0 ? f : statesPtr->curMoveSpeed );
+            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, SPLIT_LINE, f));
             // Ok or Err sent in holdData();
             break;
 
@@ -176,7 +181,9 @@ public:
             gy = getArg('Y', commandPairs);
             cx = getArg('I', commandPairs);
             cy = getArg('J', commandPairs);
-            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, cx + xoff, cy + yoff, CLW_ROTATE));
+            f = getArg('F', commandPairs);
+            f = (f != 0 ? f : statesPtr->curMoveSpeed );
+            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, cx + xoff, cy + yoff, CLW_ROTATE, f));
             // Ok or Err sent in holdData();
             break;
 
@@ -189,7 +196,9 @@ public:
             gy = getArg('Y', commandPairs);
             cx = getArg('I', commandPairs);
             cy = getArg('J', commandPairs);
-            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, cx + xoff, cy + yoff, CCW_ROTATE));
+            f = getArg('F', commandPairs);
+            f = (f != 0 ? f : statesPtr->curMoveSpeed );
+            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, cx + xoff, cy + yoff, CCW_ROTATE, f));
             break;
 
           case GCOM_DIRECT_STEPPER_MV:

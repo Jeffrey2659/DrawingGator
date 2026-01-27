@@ -28,10 +28,12 @@ struct StateHolder : public Printable {
   bool debugMode = false;
 
   Vector2d curPos;
+  Vector2d curTarget;
   Vector2d curOffset;
   LegData curLeg;
   LegData nextLeg;
 
+  unsigned int curMoveSpeed = 120;
   int curPWM = 0;
   bool changedPWM = true;
 
