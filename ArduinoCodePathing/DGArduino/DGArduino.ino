@@ -52,6 +52,8 @@ void loop() {
   else if (sh.moveState == StateHolder::IDLE) {
     bool hasCurLeg = sh.curLeg.valid;
     bool hasNextLeg = sh.nextLeg.valid;
+    clearMoves(); // clear moves while in idle
+
     if (!hasCurLeg && hasNextLeg) {
       sh.curLeg = sh.nextLeg;
       sh.nextLeg = LegData();
@@ -73,7 +75,6 @@ void loop() {
   if (sh.moveState == StateHolder::MOVING) {
     // Check if there is something to do next
     if (sh.curLeg.valid) {
-      unsigned long runTimeMillis = millis();
       trySteps(sh);
     } else {
       sh.moveState == StateHolder::IDLE;

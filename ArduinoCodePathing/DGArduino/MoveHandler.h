@@ -95,12 +95,12 @@ void trySteps(StateHolder& sh) {
   int RDIR = (sh.rMove < 0 ? LOW : HIGH); // may need to reverse
   digitalWrite(LEFT_MOTOR_DIR_PIN, LDIR);
   digitalWrite(RIGHT_MOTOR_DIR_PIN, RDIR);
-  unsigned int quart_time = 60000/sh.curLeg.speed; // quarter inch time
-  int leg_magnitude = (sh.curLeg.goal - sh.curLeg.start).Magnitude();
-  unsigned int leg_exec_time = round(quart_time * (leg_magnitude/0.25));
+  double quart_time = 60000.0/sh.curLeg.speed; // quarter inch time
+  double leg_magnitude = (sh.curLeg.goal - sh.curLeg.start).Magnitude();
+  double leg_exec_time = round(quart_time * (leg_magnitude/0.25));
   
-  int LMOD = sh.lMove != 0 ? leg_exec_time/(2*abs(sh.lMove)) : 0xffff;
-  int RMOD = sh.rMove != 0 ? leg_exec_time/(2*abs(sh.rMove)) : 0xffff;
+  int LMOD = round(sh.lMove != 0 ? leg_exec_time/(2.0*abs(sh.lMove)) : 0xffff);
+  int RMOD = round(sh.rMove != 0 ? leg_exec_time/(2.0*abs(sh.rMove)) : 0xffff);
 
   unsigned long millis_passed = millis();
 
@@ -130,7 +130,8 @@ void trySteps(StateHolder& sh) {
   }
 
   if ((rightMoves >= abs(sh.rMove)) && (leftMoves >= abs(sh.lMove))) {
-    sh.curLeg.valid = false; 
+    sh.curLeg = LegData(); // invalid leg
+    sh.changedMove = false;
   } else {
     sh.changedMove = true;
   }

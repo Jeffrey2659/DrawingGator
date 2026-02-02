@@ -68,7 +68,7 @@ private:
 
   bool holdData(LegData legToStore) {
     storedLegData = legToStore;
-    if (!statesPtr->hasNextLeg()) {
+    if (!statesPtr->nextLeg.valid) {
       statesPtr->nextLeg = storedLegData;
       // Ok will be sent when move is done
     } else {
@@ -157,7 +157,7 @@ public:
             gy = getArg('Y', commandPairs);
             f = getArg('F', commandPairs);
             f = (f != 0 ? f : statesPtr->curMoveSpeed );
-            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, RAPID_LINE, f*2)); // Speeeed!
+            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, RAPID_LINE, f)); // Speeeed!
             // Ok or Err sent in holdData();
             break;
 

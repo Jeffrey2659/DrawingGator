@@ -89,10 +89,6 @@ struct StateHolder : public Printable {
     return !isInches(); // opposites
   }
 
-  bool hasNextLeg() {
-    return nextLeg.valid; // opposites
-  }
-
   // Debugging is god awful without this
   size_t printTo(Print& p) const {
     size_t n = 0;
@@ -125,6 +121,14 @@ struct StateHolder : public Printable {
     n += p.print(penState);
     n += p.print(", moveState: ");
     n += p.println(moveState);
+
+    n += p.print("curLegValid: ");
+    n += p.print(curLeg.valid);
+    n += p.print(", nextLegValid: ");
+    n += p.println(nextLeg.valid);
+  
+    n += p.print("curMoveSpeed: ");
+    n += p.println(curMoveSpeed);
 
     n += p.print("End of States");
     

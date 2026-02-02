@@ -49,17 +49,21 @@ void shiftPosBySteps(StateHolder& sh, int lSteps, int rSteps) {
 }
 
 void setMovesFromLeg(StateHolder& sh) {
+  Serial.println("Setting moves...");
+  // INVESTIGATE TODO
   Vector2d startLens = getLengthsFromPos(sh.curLeg.start);
   Vector2d goalLens = getLengthsFromPos(sh.curLeg.goal);
   Vector2d lengthDelta = goalLens - startLens;
   sh.lMove = round(lengthDelta.X/MIN_STEP_DIST);
   sh.rMove = round(lengthDelta.Y/MIN_STEP_DIST);
+  Serial.println(sh.lMove);
+  Serial.println(sh.rMove);
 }
 
 
 // Leg Logic
 void checkForLegSplit(StateHolder& sh) {
-  if (sh.hasNextLeg() || !sh.curLeg.valid) { return; } // Shouldn't call this function! Go!
+  if (sh.nextLeg.valid || !sh.curLeg.valid) { return; } // Shouldn't call this function! Go!
 
   sh.curLeg.start = sh.curPos; // gonna do here, since start of current leg should just be where we are
   
@@ -71,14 +75,23 @@ void checkForLegSplit(StateHolder& sh) {
     case SPLIT_LINE:
       Vector2d diff = sh.curLeg.goal - sh.curLeg.start;
       if (diff.Magnitude() < MAX_STRAIGHT_LEG_DIST) {
+        Serial.println("NOT LONG ENOUGH TO SPLIT");
         return; // Good enough for gov work
       }
       // Aha! Cut the leg into its smaller right now part and the everything else part!
       Vector2d cut_diff = (diff/(diff.Magnitude()))*MAX_STRAIGHT_LEG_DIST; // unit vector * dist multiplier
-      Vector2d split_point = sh.curLeg.start + diff;
-      sh.nextLeg = LegData(0, 0, 0, 0, sh.curLeg.algo, sh.curLeg.speed);
-      sh.nextLeg.goal = sh.curLeg.goal;
-      sh.curLeg.goal = split_point;
+      Vector2d split_point = sh.curLeg.start + cut_diff;
+      // if remaining dist is negligible, don't even bother making new leg
+      if ((sh.curLeg.goal - split_point).Magnitude() < MIN_STEP_DIST/2) {
+        sh.nextLeg = LegData(); // invalid next leg
+        Serial.println("NOT ENOUGH EXTRA TO SPLIT");
+        return;
+      } else {
+        sh.nextLeg = LegData(0, 0, 0, 0, sh.curLeg.algo, sh.curLeg.speed);
+        sh.nextLeg.goal = sh.curLeg.goal;
+        sh.curLeg.goal = split_point;
+        Serial.println("SPLIT MADE");
+      }
       break;
 
     case CLW_ROTATE:
