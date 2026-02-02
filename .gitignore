@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 
 
+Interface/__pycache__/
+*.pyc

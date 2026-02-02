@@ -125,6 +125,10 @@ class Presenter:
             self.v.log("Resuming…")
             self.streamer.resume()
 
+    def handle_show_preview(self):
+        if hasattr(self.v, "show_preview"):
+            self.v.show_preview()
+
     # ---- Service callbacks ----
     def _on_device_data(self, data: bytes):
         for line in data.decode("utf-8", errors="replace").splitlines():
