@@ -18,6 +18,10 @@ class ViewQt(QMainWindow, Ui_MainWindow):
     on_resume_clicked = None
     on_upload_svg = None
     on_upload_image = None
+
+    # Add additional line for svg preview revert
+    on_show_svg_preview = None
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
@@ -250,6 +254,8 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         # self.resumeBtn.clicked.connect(lambda: self.on_resume_clicked and self.on_resume_clicked())
         #self.actionUpload_Image.triggered.connect(self._ask_open_image)    # Presenter -> View API
 
+        self.create_show_svg_preview()
+
 
     def set_ports(self, ports: List[str]) -> None:
         self.portOpt.clear()
@@ -325,3 +331,24 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         # call the function to display the color on the image
         self.color_window.color_sel.connect(self.mpl_widget.update_colors)
         self.color_window.show()
+
+    # adding function to bring back svg preview if closed
+    def create_show_svg_preview(self):
+        view_menu = None
+        for action in self.menuBar().actions():
+            if action.text() == "View":
+                view_menu = action.menu()
+                break
+        if view_menu is None:
+            view_menu = self.menuBar().addMenu("View")
+        
+        self.preview_dock = self.findChild(QDockWidget, "SVGPreviewDock")
+        show_preview_action = view_menu.addAction("Show SVG Preview")
+        show_preview_action.triggered.connect(self.show_preview)
+
+    # reselect svg preview if closed
+    def show_preview(self):
+        if self.preview_dock.isHidden():
+            self.preview_dock.show()
+        self.preview_dock.raise_()
+        self.preview_dock.activateWindow()
