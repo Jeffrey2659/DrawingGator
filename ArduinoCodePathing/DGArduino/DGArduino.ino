@@ -54,7 +54,6 @@ void loop() {
     bool hasNextLeg = sh.nextLeg.valid;
     if (!hasCurLeg && hasNextLeg) {
       sh.curLeg = sh.nextLeg;
-      sh.curLeg.start = sh.getTruePos();
       sh.nextLeg = LegData();
       checkForLegSplit(sh);
       setMovesFromLeg(sh);
@@ -75,30 +74,7 @@ void loop() {
     // Check if there is something to do next
     if (sh.curLeg.valid) {
       unsigned long runTimeMillis = millis();
-      
       trySteps(sh);
-      
-      /*
-      // TODO: THIS WHOLE PROCESS NEEDS TO CHANGE
-      Vector2d bestLengthDelta = getBestLengthDeltas(sh);
-      movePosByLengths(bestLengthDelta, sh);
-      // Check if the next point is same as current pos
-      if ((bestLengthDelta/MIN_STEP_DIST).Magnitude() < MIN_STEP_DIST/2) {
-        // if same as current pos, no more movements, leg is OVER!
-        sh.curLeg = sh.nextLeg;
-        sh.nextLeg = LegData();
-        checkForLegSplit(sh);
-        setMovesFromLeg(sh);
-        if (!sh.curLeg.valid) { // Only move to idle if really done
-          sh.moveState = StateHolder::IDLE;
-        }
-      } else { // if it is different, then make the move!
-        sh.lMove = round(bestLengthDelta.X/MIN_STEP_DIST);
-        sh.rMove = round(bestLengthDelta.Y/MIN_STEP_DIST);
-        sh.changedMove = true;
-      }
-      */
-      
     } else {
       sh.moveState == StateHolder::IDLE;
     }

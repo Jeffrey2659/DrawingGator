@@ -5,7 +5,7 @@
 
 // tired of not having this. Making my own implementation
 
-// To use vector as a psuedo map, if desired
+// To use araray list as a psuedo map, if desired
 template <typename TK, typename TV>
 struct KeyValueItem: public Printable {
   TK key;
@@ -24,12 +24,12 @@ struct KeyValueItem: public Printable {
 template <typename T>
 class ArrayList : public Printable {
 public:
-  enum VecPrintFormat { VPF_HORIZ_FANCY, VPF_HORIZ_RAW, VPF_VERT_FANCY, VPF_VERT_RAW };
+  enum ArrListPrintFormat { ALPF_HORIZ_FANCY, ALPF_HORIZ_RAW, ALPF_VERT_FANCY, ALPF_VERT_RAW };
 private:
   T* data = nullptr;
   int size = 0;
   int cap = 1;
-  VecPrintFormat printFormat = VPF_HORIZ_FANCY;
+  ArrListPrintFormat printFormat = ALPF_HORIZ_FANCY;
   void growSize() {
     // should only happen when size equals capacity
     T* oldData = data;
@@ -82,10 +82,10 @@ public:
   T* getData() {
     return data;
   }
-  VecPrintFormat getPrintFormat() {
+  ArrListPrintFormat getPrintFormat() {
     return printFormat;
   }
-  ArrayList& setPrintFormat(VecPrintFormat newFormat) {
+  ArrayList& setPrintFormat(ArrListPrintFormat newFormat) {
     printFormat = newFormat;
     return *this;
   }
@@ -195,7 +195,7 @@ public:
     }
 
     switch (printFormat) {
-      case VPF_HORIZ_FANCY:
+      case ALPF_HORIZ_FANCY:
         n += p.print("[ ");
         n += p.print(data[0]);
         for (int i = 1; i < size; i++) {
@@ -205,13 +205,13 @@ public:
         n += p.print(" ]");
         break;
         
-      case VPF_HORIZ_RAW:
+      case ALPF_HORIZ_RAW:
         for (int i = 0; i < size; i++) {
           n += p.print(data[i]);
         }
         break;
 
-      case VPF_VERT_FANCY:
+      case ALPF_VERT_FANCY:
         n += p.println("[... ");
         n += p.print(data[0]);
         for (int i = 1; i < size; i++) {
@@ -222,7 +222,7 @@ public:
         n += p.print("...]");
         break;
 
-      case VPF_VERT_RAW:
+      case ALPF_VERT_RAW:
         for (int i = 0; i < size-1; i++) {
           n += p.println(data[i]);
         }
@@ -230,7 +230,7 @@ public:
         break;
 
       default:
-        n += p.print("Invalid VectorPrintFormat: ");
+        n += p.print("Invalid ArrListPrintFormat: ");
         n += p.print(printFormat);
         break;
     }

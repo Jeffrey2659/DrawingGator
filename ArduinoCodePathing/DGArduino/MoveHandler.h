@@ -63,8 +63,8 @@ void moveToPos(StateHolder& sh) { // direct move
 }
 
 
-// OLD CODE, SHOULD BE UNUSED IN FINAL
-void sendMovements(StateHolder& sh) {
+// NEED TO FIND ALTERNATIVE FOR
+void TODO_sendMovements(StateHolder& sh) {
 
   int LDIR = (sh.lMove < 0 ? LOW : HIGH); // may need to reverse
   int RDIR = (sh.rMove < 0 ? LOW : HIGH); // may need to reverse
@@ -84,13 +84,11 @@ void sendMovements(StateHolder& sh) {
     if (i % RMOD == 0) {
       RSTEP = (RSTEP == LOW ? HIGH : LOW);
       digitalWrite(RIGHT_MOTOR_STEP_PIN, RSTEP);
-      
     }
   }
   digitalWrite(LEFT_MOTOR_STEP_PIN, LOW);
   digitalWrite(RIGHT_MOTOR_STEP_PIN, LOW);
 }
-
 
 void trySteps(StateHolder& sh) {
   int LDIR = (sh.lMove < 0 ? LOW : HIGH); // may need to reverse
@@ -98,7 +96,7 @@ void trySteps(StateHolder& sh) {
   digitalWrite(LEFT_MOTOR_DIR_PIN, LDIR);
   digitalWrite(RIGHT_MOTOR_DIR_PIN, RDIR);
   unsigned int quart_time = 60000/sh.curLeg.speed; // quarter inch time
-  int leg_magnitude = (sh.curLeg.goal - sh.getTruePos()).Magnitude();
+  int leg_magnitude = (sh.curLeg.goal - sh.curLeg.start).Magnitude();
   unsigned int leg_exec_time = round(quart_time * (leg_magnitude/0.25));
   
   int LMOD = sh.lMove != 0 ? leg_exec_time/(2*abs(sh.lMove)) : 0xffff;
@@ -113,15 +111,22 @@ void trySteps(StateHolder& sh) {
     lcount++;
     lstep = (lstep == LOW ? HIGH : LOW); // toggle
     digitalWrite(LEFT_MOTOR_STEP_PIN, lstep);
-    if (lstep == HIGH) { leftMoves++; }
+    if (lstep == HIGH) { 
+      leftMoves++; 
+      double steps_made = sh.lMove < 0 ? -1.0 : 1.0;
+      shiftPosBySteps(sh, steps_made, 0.0);
+    }
   }
 
   if ((floor(millis_passed/RMOD) > rcount) && (rightMoves < abs(sh.rMove))) {
     rcount++;
     rstep = (rstep == LOW ? HIGH : LOW);
     digitalWrite(RIGHT_MOTOR_STEP_PIN, rstep);
-    if (rstep == HIGH) { rightMoves++; }
-    // Serial.println(sh.rMove - rcount);
+    if (rstep == HIGH) { 
+      rightMoves++; 
+      double steps_made = sh.rMove < 0 ? -1.0 : 1.0;
+      shiftPosBySteps(sh, 0.0, steps_made);
+    }
   }
 
   if ((rightMoves >= abs(sh.rMove)) && (leftMoves >= abs(sh.lMove))) {
@@ -130,9 +135,6 @@ void trySteps(StateHolder& sh) {
     sh.changedMove = true;
   }
 
-  // WHERE DO THESE GO NOW? IF ANYWHERE?
-  // digitalWrite(LEFT_MOTOR_STEP_PIN, LOW);
-  // digitalWrite(RIGHT_MOTOR_STEP_PIN, LOW);
 }
 
 

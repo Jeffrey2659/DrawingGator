@@ -239,8 +239,8 @@ public:
             gy = getArg('Y', commandPairs);
             cx = getArg('I', commandPairs);
             cy = getArg('J', commandPairs);
-            statesPtr->curPos = Vector2d(gx, gy);
-            statesPtr->curOffset = Vector2d(cx, cy) - statesPtr->curPos; // Assumes offsets of 0,0 if not given
+            statesPtr->curPos = Vector2d(cx, cy);
+            statesPtr->curOffset = statesPtr->curPos - Vector2d(gx, gy); // Assumes offsets of 0,0 if not given
             sendOk();
             break;
 
@@ -347,7 +347,7 @@ public:
         }
         if (statesPtr->debugMode) {
           Serial.print(">> ");
-          Serial.println(curCommand.setPrintFormat(ArrayList<char>::VPF_HORIZ_RAW));
+          Serial.println(curCommand.setPrintFormat(ArrayList<char>::ALPF_HORIZ_RAW));
         }
         ArrayList<KeyValueItem<char, double>> commandPairs = parseGCode(curCommand);
         bool toRet = translateGCode(commandPairs);

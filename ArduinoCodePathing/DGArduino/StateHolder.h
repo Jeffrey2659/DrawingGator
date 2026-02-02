@@ -28,7 +28,6 @@ struct StateHolder : public Printable {
   bool debugMode = false;
 
   Vector2d curPos;
-  Vector2d curTarget;
   Vector2d curOffset;
   LegData curLeg;
   LegData nextLeg;
@@ -94,14 +93,6 @@ struct StateHolder : public Printable {
     return nextLeg.valid; // opposites
   }
 
-  Vector2d getTruePos() {
-    return (curPos + curOffset);
-  }
-
-  void setTruePos(Vector2d newPos) {
-    curPos = newPos - curOffset;
-  }
-
   // Debugging is god awful without this
   size_t printTo(Print& p) const {
     size_t n = 0;
@@ -111,6 +102,8 @@ struct StateHolder : public Printable {
     n += p.println(curPos);
     n += p.print("curOffset: ");
     n += p.println(curOffset);
+    n += p.print("curCanvasPos: ");
+    n += p.println(curPos - curOffset);
 
     n += p.print("debugMode: ");
     n += p.print(debugMode);
