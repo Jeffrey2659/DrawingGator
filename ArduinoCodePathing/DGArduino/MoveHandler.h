@@ -99,8 +99,8 @@ void trySteps(StateHolder& sh) {
   double leg_magnitude = (sh.curLeg.goal - sh.curLeg.start).Magnitude();
   double leg_exec_time = round(quart_time * (leg_magnitude/0.25));
   
-  int LMOD = round(sh.lMove != 0 ? leg_exec_time/(2.0*abs(sh.lMove)) : 0xffff);
-  int RMOD = round(sh.rMove != 0 ? leg_exec_time/(2.0*abs(sh.rMove)) : 0xffff);
+  int LMOD = round(sh.lMove != 0 ? leg_exec_time/(2.0*abs(sh.lMove)) : 0x0fffffff);
+  int RMOD = round(sh.rMove != 0 ? leg_exec_time/(2.0*abs(sh.rMove)) : 0x0fffffff);
 
   unsigned long millis_passed = millis();
 
