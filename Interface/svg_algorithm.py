@@ -32,6 +32,14 @@ def split_svg_paths(svg_path):
         d = elements.get('d')
         if not d:
             continue
+
+        # remove M0 manually at the moment
+        if d.startswith('M0'):
+            parent = elements.getparent()
+            if parent is not None:
+                parent.remove(elements)
+            continue
+
         # split at 'M' or 'm' to get subpaths
         subpaths = re.split(r'(?=[Mm])', d)
         # clean up any empty strings
@@ -84,7 +92,18 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     
     # using open cv to threshold the image for better results
     # https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html 
-    _, img = cv2.threshold(image, 128, 255, cv2.THRESH_BINARY)
+    img = cv2.adaptiveThreshold(
+        image,
+        255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        \
+        cv2.THRESH_BINARY,
+        11,
+        2
+    )
+
+    img = cv2.bitwise_not(img)
+
     # output that potrace expects
     # https://potrace.sourceforge.net/ 
     img_path = "temp.pbm"
@@ -320,6 +339,7 @@ if __name__ == "__main__":
     #input_path = "images/roses.jpg"
     #input_path = "images/testing.png"
     input_path = "images/prototype_design.jpg"
+    #input_path = "images/gator.jpg"
     output_path = "output.svg"
     potrace_executable = "potrace"
 
