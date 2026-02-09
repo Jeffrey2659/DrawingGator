@@ -45,7 +45,8 @@ def split_svg_paths(svg_path):
     
     tree.write(svg_path, pretty_print=True)
 
-# function to convert png/jpg to svg
+# working on getting colors to the svg
+# using same function but making changes
 def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrace"):
     # add the path to the image
     # add conversion to greyscale here
@@ -63,14 +64,15 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     #         background.paste(image, mask=image.split()[1])
     #     image = background
 ################################################################################
-    # convert to grayscale using open cv
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # need color mapping here
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     #image = image.convert('L')
     #width, height = image.size
     # returns the opposite
-    height, width = image.shape
+    height, width, _ = image.shape
 
+    # keep the same
     # convert from pixel to cm/inch to display
     # using 96 DPI as that is a default
     #dpi = image.info.get('dpi', (96, 96))[0]
@@ -83,6 +85,20 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     width_cm = width_inch * 2.54
     height_cm = height_inch * 2.54
 
+    ## REFERENCE: https://blog.finxter.com/5-best-ways-to-perform-color-quantization-in-an-image-using-k-means-in-opencv-python/
+
+    # using color quantanization
+    color_img = image.reshape(-1, 3).astype(np.float32)
+    # define criteria
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+    k = 4
+    _, labels, centers = cv2.kmeans(color_img, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+
+    # back to 8 bits
+    centers = np.uint8(centers)
+    quantized_img = centers[labels.flatten()].reshape(image.shape)
+
+
     # 0 - 255
     #img = image.point(lambda x: 0 if x < 128 else 255, '1')
     
@@ -92,16 +108,14 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
 
     ## This section extracts 73 strokes (includes a canvas border) ==> FOR GATOR IMAGE
     ## Includes a border with every image processed
-    img = cv2.adaptiveThreshold(
-        image,
-        255,
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        \
-        cv2.THRESH_BINARY,
-        11,
-        2
+
+    # not working the svh is empty
+    img = cv2.inRange(
+        quantized_img,
+        np.array([0, 0, 0]),
+        np.array([255, 255, 255])
     )
-    img = cv2.bitwise_not(img)
+    #img = cv2.bitwise_not(img)
 
     ## This section extracts 322 strokes ==> FOR GATOR IMAGE
     # img = cv2.adaptiveThreshold(
@@ -168,6 +182,129 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     # return lines, width, 
 
 
+# function to convert png/jpg to svg
+# def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrace"):
+#     # add the path to the image
+#     # add conversion to greyscale here
+#     #image = Image.open(file_path)
+#     image = cv2.imread(file_path)
+#     # ADD CHECK FOR BACKGROUND BEING TRANSPARENT
+# ################################################################################    
+#     # WILL BE DONE LATER NOT NEEDED FOR NOW
+#     # if image.mode in ('RGBA', 'LA'):
+#     #     # make it white for better processing
+#     #     background = Image.new('RGB', image.size, (255, 255, 255))
+#     #     if image.mode == 'RGBA':
+#     #         background.paste(image, mask = image.split()[3])
+#     #     else:
+#     #         background.paste(image, mask=image.split()[1])
+#     #     image = background
+# ################################################################################
+#     # convert to grayscale using open cv
+#     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+#     #image = image.convert('L')
+#     #width, height = image.size
+#     # returns the opposite
+#     height, width = image.shape
+
+#     # convert from pixel to cm/inch to display
+#     # using 96 DPI as that is a default
+#     #dpi = image.info.get('dpi', (96, 96))[0]
+#     # hard code the number for dpi
+#     dpi = 96
+#     # inches
+#     width_inch = width / dpi
+#     height_inch = height / dpi
+#     # cm
+#     width_cm = width_inch * 2.54
+#     height_cm = height_inch * 2.54
+
+#     # 0 - 255
+#     #img = image.point(lambda x: 0 if x < 128 else 255, '1')
+    
+#     # using open cv to threshold the image for better results
+#     # https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html 
+#     # Smooth noise but preserve edges
+
+#     ## This section extracts 73 strokes (includes a canvas border) ==> FOR GATOR IMAGE
+#     ## Includes a border with every image processed
+#     img = cv2.adaptiveThreshold(
+#         image,
+#         255,
+#         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+#         \
+#         cv2.THRESH_BINARY,
+#         11,
+#         2
+#     )
+#     img = cv2.bitwise_not(img)
+
+#     ## This section extracts 322 strokes ==> FOR GATOR IMAGE
+#     # img = cv2.adaptiveThreshold(
+#     #     image,
+#     #     255,
+#     #     cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+#     #     \
+#     #     cv2.THRESH_BINARY,
+#     #     11,
+#     #     2
+#     # )
+#     # kernel = np.ones((2,2), np.uint8)
+#     # img = cv2.dilate(img, kernel, iterations=1)
+#     # img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel, iterations=1)
+
+
+#     # output that potrace expects
+#     # https://potrace.sourceforge.net/ 
+#     img_path = "temp.pbm"
+#     #img.save(img_path)
+
+#     # save using open cv
+#     cv2.imwrite(img_path, img)
+    
+#     # call subprocess since potrace does not work for my computer 
+#     try:
+#         subprocess.run([potrace_path, img_path, "-s", "-o", output_path], check=True)
+#         split_svg_paths(output_path)
+#         print("SVG created successfully!")
+#     finally:
+#         if os.path.exists(img_path):    
+#             os.remove(img_path)
+
+#     # list of plack pixels and coordinates we need 
+#     pixels = np.array(img)
+#     lines = [(x, y) for y in range(height) for x in range(width) if pixels[y, x] == 0]
+    
+#     #### LET'S TRY AND ADD PAPER SIZE ####
+
+#     # return the lines and output_path in which is saved
+#     # also width and height for scaling purposes
+#     return lines, width, height, width_inch, height_inch, width_cm, height_cm, output_path
+
+#     # get the size of the image
+#     # width, height = image.size
+
+#     # # working with black and white images only
+#     # array_of_pixels = np.array(image)
+    
+#     # vals = array_of_pixels < 128 
+
+#     # # convert to svg using the svgwrite
+#     # outcome = svgwrite.Drawing(output_path, profile='tiny', size=(width, height))
+
+#     # lines = []
+#     # for y in range(height):
+#     #     for x in range(width):
+#     #         if vals[y, x]:
+#     #             lines.append((x, y))
+#     #             outcome.add(outcome.rect(insert=(x, y), size=(1, 1), fill='black'))
+
+#     # outcome.save()
+#     # print("SVG created successfully!")
+#     # return lines, width, 
+
+
 def convert_to_a4(svg_in, svg_out, original_width, original_height): 
     tree = etree.parse(svg_in) 
     root = tree.getroot() 
@@ -199,6 +336,8 @@ def convert_to_a4(svg_in, svg_out, original_width, original_height):
 # extract the coordinates
 # looking at the svg there are 2 paths created inner and outer
 # consider removing the inner lines 
+
+## made changes to extract colors to test
 def extract_coordinates(svg_path, samples=50):
     # adding a new function for area of path
     def path_area(line):
@@ -213,11 +352,12 @@ def extract_coordinates(svg_path, samples=50):
         return abs(area) / 2.0
     # FIXED STOKES 
     # using the svg library to extract paths 
-    #paths, attributes = svg2paths(svg_path)
-    paths, _ = svg2paths(svg_path)
+    paths, attributes = svg2paths(svg_path)
+    #paths, _ = svg2paths(svg_path)
     all_strokes = []
     # start by processing each path 
-    for path in paths:
+    for path, attr in zip(paths, attributes):
+        color = attr.get('fill', '#000000') 
         # split into continuous subpaths
         subpath = path.continuous_subpaths()
         stroke = [] # area and points
@@ -235,7 +375,7 @@ def extract_coordinates(svg_path, samples=50):
         if not stroke:
             continue
         outer = max(stroke, key=lambda x: x[0])
-        all_strokes.append(outer[1])
+        all_strokes.append({'points': outer[1], 'color': color})
     return all_strokes, len(all_strokes)
 
     # for path in paths:
@@ -313,9 +453,9 @@ def animation_simulation(strokes):
 
     plt.show() 
 
-# display the svg drawing, because animation is not working when called in the UI  
+# display the svg drawing, because animation is not working when called in the UI 
+# making changes to view colors 
 def display_svg(strokes):
-    # a4 size in inches
     a4_width_in = 8.27   
     a4_height_in = 11.69 
 
@@ -323,24 +463,22 @@ def display_svg(strokes):
     ax.set_aspect('equal')
     ax.invert_yaxis()
     
-    all_points = [p for stroke in strokes for p in stroke]
-    xs, ys = zip(*all_points)
-
-    x_range = max(xs) - min(xs) if max(xs) != min(xs) else 1
-    y_range = max(ys) - min(ys) if max(ys) != min(ys) else 1
-    pad_x = x_range * 0.05
-    pad_y = y_range * 0.05
+    # Extract all points to set limits
+    all_pts = [p for s in strokes for p in s['points']]
+    xs, ys = zip(*all_pts)
     
-    ax.set_xlim(min(xs) - pad_x, max(xs) + pad_x)
-    ax.set_ylim(min(ys) - pad_y, max(ys) + pad_y)
+    ax.set_xlim(min(xs), max(xs))
+    ax.set_ylim(min(ys), max(ys))
     ax.axis('off')
     
-    # Draw all strokes
     for stroke in strokes:
-        if stroke:
-            xs_stroke = [p[0] for p in stroke]
-            ys_stroke = [p[1] for p in stroke]
-            ax.plot(xs_stroke, ys_stroke, 'k-', linewidth=2)
+        pts = stroke['points']
+        color = stroke['color']
+        if pts:
+            xs_s = [p[0] for p in pts]
+            ys_s = [p[1] for p in pts]
+            # Use the color found in the SVG
+            ax.plot(xs_s, ys_s, color=color, linewidth=2)
 
     plt.show()
 ##############################################################################################
@@ -348,9 +486,9 @@ def display_svg(strokes):
 # add main
 if __name__ == "__main__":
     #input_path = "images/shapes.png"
-    input_path = "images/drawinggator.jpeg"
+    #input_path = "images/drawinggator.jpeg"
     #input_path = "images/simple.png"
-    #input_path = "images/logo.jpg"
+    input_path = "images/logo.jpg"
     #input_path = "images/testing.png"
     #input_path = "images/prototype_design.jpg"
     #input_path = "images/gator.jpg"
