@@ -18,6 +18,7 @@ import cv2
 from svgpathtools import svg2paths
 from lxml import etree
 import re
+from xml.dom import minidom
 # REFERENCE-ISH https://github.com/Bhomik04/image-to-svg/blob/main/python%20practice.py
 
 # remove the inner path from svg which is structured as 
@@ -44,6 +45,10 @@ def split_svg_paths(svg_path):
             elements.set('d', subpaths[0])
     
     tree.write(svg_path, pretty_print=True)
+
+# https://stackoverflow.com/questions/3380726/converting-an-rgb-color-tuple-to-a-hexidecimal-string
+def rgb2hex(r,g,b):
+    return "#{:02x}{:02x}{:02x}".format(r,g,b)
 
 # working on getting colors to the svg
 # using same function but making changes
@@ -86,7 +91,7 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     height_cm = height_inch * 2.54
 
     ## REFERENCE: https://blog.finxter.com/5-best-ways-to-perform-color-quantization-in-an-image-using-k-means-in-opencv-python/
-
+    ## https://stackoverflow.com/questions/73666119/open-cv-python-quantize-to-a-given-color-palette 
     # using color quantanization
     color_img = image.reshape(-1, 3).astype(np.float32)
     # define criteria
@@ -98,65 +103,58 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     centers = np.uint8(centers)
     quantized_img = centers[labels.flatten()].reshape(image.shape)
 
+    # need to somehow save the file to edit it
+    # https://coderivers.org/blog/python-svg/
+    dwg = svgwrite.Drawing(output_path, profile='tiny', size=(width, height))
 
-    # 0 - 255
-    #img = image.point(lambda x: 0 if x < 128 else 255, '1')
+    # covert to grayscale
+    img_gray = cv2.cvtColor(quantized_img, cv2.COLOR_RGB2GRAY)
+    pixels = np.array(img_gray)
+    lines = [(x, y) for y in range(height) for x in range(width) if pixels[y, x] == 255]
     
-    # using open cv to threshold the image for better results
-    # https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html 
-    # Smooth noise but preserve edges
+    for i, color in enumerate(centers):
+        # https://blog.finxter.com/5-best-ways-to-color-identification-in-images-using-python-and-opencv/
+        img = cv2.inRange(
+            quantized_img,
+            color,
+            color
+        )
 
-    ## This section extracts 73 strokes (includes a canvas border) ==> FOR GATOR IMAGE
-    ## Includes a border with every image processed
+        img = cv2.bitwise_not(img)
 
-    # not working the svh is empty
-    img = cv2.inRange(
-        quantized_img,
-        np.array([0, 0, 0]),
-        np.array([255, 255, 255])
-    )
-    #img = cv2.bitwise_not(img)
+        # output that potrace expects
+        # https://potrace.sourceforge.net/ 
+        img_path = f"temp_{i}.pbm"
+        img_svg = f"temp_{i}.svg"
+        #img.save(img_path)
 
-    ## This section extracts 322 strokes ==> FOR GATOR IMAGE
-    # img = cv2.adaptiveThreshold(
-    #     image,
-    #     255,
-    #     cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-    #     \
-    #     cv2.THRESH_BINARY,
-    #     11,
-    #     2
-    # )
-    # kernel = np.ones((2,2), np.uint8)
-    # img = cv2.dilate(img, kernel, iterations=1)
-    # img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel, iterations=1)
-
-
-    # output that potrace expects
-    # https://potrace.sourceforge.net/ 
-    img_path = "temp.pbm"
-    #img.save(img_path)
-
-    # save using open cv
-    cv2.imwrite(img_path, img)
-    
-    # call subprocess since potrace does not work for my computer 
-    try:
-        subprocess.run([potrace_path, img_path, "-s", "-o", output_path], check=True)
-        split_svg_paths(output_path)
-        print("SVG created successfully!")
-    finally:
-        if os.path.exists(img_path):    
-            os.remove(img_path)
+        # save using open cv
+        cv2.imwrite(img_path, img)
+        
+        # call subprocess since potrace does not work for my computer 
+        try:
+            subprocess.run([potrace_path, img_path, "-s", "-o", img_svg], check=True)
+            paths, _ = svg2paths(img_svg)
+            hex_color = rgb2hex(color[0], color[1], color[2])
+            for path in paths:
+                dwg.add(dwg.path(d=path.d(), fill=hex_color))
+            #split_svg_paths(img_svg)
+            #print("SVG created successfully!")
+        finally:
+            if os.path.exists(img_path):    
+                os.remove(img_path)
+            if os.path.exists(img_svg):
+                os.remove(img_svg)
 
     # list of plack pixels and coordinates we need 
-    pixels = np.array(img)
-    lines = [(x, y) for y in range(height) for x in range(width) if pixels[y, x] == 0]
+    
     
     #### LET'S TRY AND ADD PAPER SIZE ####
 
     # return the lines and output_path in which is saved
     # also width and height for scaling purposes
+    dwg.save()
+    split_svg_paths(output_path)
     return lines, width, height, width_inch, height_inch, width_cm, height_cm, output_path
 
     # get the size of the image
