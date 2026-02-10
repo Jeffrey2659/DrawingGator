@@ -3,3 +3,7 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+CLAUDE.md
+Desktop - Shortcut.lnk
+DG_UI/output.gcode
+DG_UI/output.svg
