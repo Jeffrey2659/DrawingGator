@@ -1,0 +1,5 @@
+Created KiCad schematic for PCB. Had to make custom footprints for the dc barrel jack and the motor drivers. Consulted some EE friends to do a design review for electrical stability.
+Learned from them the best way to setup the layers of the PCB and placement of vias to the GND plane to reduce current loops and hopefully avoid sensitive components from experiencing volatility.
+
+10:00am-2:00pm
+4:00pm-7:30pm

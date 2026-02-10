@@ -1,68 +1,77 @@
 # Pillow as a tool to import and that handles image processing
 from PIL import Image 
 import numpy as np
-from pathlib import Path
 # let's consider using potrace for clearer images
 # idk why i can't install this
 # import potrace
 # use a subprocess that calls potrace (LATER USE)
 import subprocess 
-import os, shutil, subprocess
+import os
 import svgwrite
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+
+# adding open cv to be used for edge detection
+import cv2
+
 # parse SVG paths
 from svgpathtools import svg2paths
 from lxml import etree
+import re
 # REFERENCE-ISH https://github.com/Bhomik04/image-to-svg/blob/main/python%20practice.py
 
 
-def find_potrace(explicit: str | None = None) -> str:
-    if explicit:
-        exe = Path(explicit)
-        if os.name == "nt" and exe.suffix.lower() != ".exe" and not exe.exists():
-            exe = exe.with_suffix(".exe")
-        if not exe.exists():
-            raise FileNotFoundError(f"potrace not found at: {exe}")
-        return str(exe)
-    # Try PATH
-    exe = shutil.which("potrace") or shutil.which("potrace.exe")
-    if not exe:
-        raise FileNotFoundError(
-            "potrace not found on PATH. Either add it to PATH or pass its full path."
-        )
-    return exe
+# remove the inner path from svg which is structured as 
+# M ... z m ... z
+def split_svg_paths(svg_path):
+    tree = etree.parse(svg_path)
+    root = tree.getroot()
+    namespace = {'svg': 'http://www.w3.org/2000/svg'}
+    paths = root.findall('.//svg:path', namespaces=namespace)
+    for elements in paths:
+        d = elements.get('d')
+        if not d:
+            continue
+        # split at 'M' or 'm' to get subpaths
+        subpaths = re.split(r'(?=[Mm])', d)
+        # clean up any empty strings
+        subpaths = [s.strip() for s in subpaths if s.strip()]
 
-
-
-
-# REFERENCE-ISH https://github.com/Bhomik04/image-to-svg/blob/main/python%20practice.py
+        if len(subpaths) > 1:
+            elements.set('d', subpaths[0])
+    tree.write(svg_path, pretty_print=True)
 
 # function to convert png/jpg to svg
 def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrace"):
     # add the path to the image
     # add conversion to greyscale here
-    image = Image.open(file_path).convert('L')
-    width, height = image.size
-    #the code below is repeat
-   #image = Image.open(file_path)
-
+    #image = Image.open(file_path)
+    image = cv2.imread(file_path)
     # ADD CHECK FOR BACKGROUND BEING TRANSPARENT
-    if image.mode in ('RGBA', 'LA'):
-        # make it white for better processing
-        background = Image.new('RGB', image.size, (255, 255, 255))
-        if image.mode == 'RGBA':
-            background.paste(image, mask = image.split()[3])
-        else:
-            background.paste(image, mask=image.split()[1])
-        image = background
+################################################################################    
+    # WILL BE DONE LATER NOT NEEDED FOR NOW
+    # if image.mode in ('RGBA', 'LA'):
+    #     # make it white for better processing
+    #     background = Image.new('RGB', image.size, (255, 255, 255))
+    #     if image.mode == 'RGBA':
+    #         background.paste(image, mask = image.split()[3])
+    #     else:
+    #         background.paste(image, mask=image.split()[1])
+    #     image = background
+################################################################################
+    # convert to grayscale using open cv
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    image = Image.open(file_path).convert('L')
-    width, height = image.size
+    #image = image.convert('L')
+    #width, height = image.size
+    # returns the opposite
+    height, width = image.shape
 
     # convert from pixel to cm/inch to display
     # using 96 DPI as that is a default
-    dpi = image.info.get('dpi', (96, 96))[0]
+    #dpi = image.info.get('dpi', (96, 96))[0]
+    # hard code the number for dpi
+    dpi = 96
     # inches
     width_inch = width / dpi
     height_inch = height / dpi
@@ -71,33 +80,27 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     height_cm = height_inch * 2.54
 
     # 0 - 255
-    img = image.point(lambda x: 0 if x < 128 else 255, '1')
+    #img = image.point(lambda x: 0 if x < 128 else 255, '1')
+    
+    # using open cv to threshold the image for better results
+    # https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html 
+    _, img = cv2.threshold(image, 128, 255, cv2.THRESH_BINARY)
     # output that potrace expects
     # https://potrace.sourceforge.net/ 
     img_path = "temp.pbm"
-    img.save(img_path)
+    #img.save(img_path)
 
-    exe = find_potrace()
-    print(f"Using potrace executable at: {exe}")
+    # save using open cv
+    cv2.imwrite(img_path, img)
+    
     # call subprocess since potrace does not work for my computer 
     try:
-        cmd = [potrace_path, img_path, "-s", "-o", str(output_path)]
-        # Helpful diagnostics:
-        print("Running:", cmd)
-        print("PATH seen by Python:", os.environ.get("PATH", ""))
-        res = subprocess.run(cmd, capture_output=True, text=True)
-        if res.returncode != 0:
-            raise RuntimeError(
-                f"potrace failed (exit {res.returncode}).\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}"
-            )
+        subprocess.run([potrace_path, img_path, "-s", "-o", output_path], check=True)
+        split_svg_paths(output_path)
         print("SVG created successfully!")
     finally:
-        if os.path.exists(img_path):
-            try:
-                os.remove(img_path)
-            except OSError:
-                pass
- 
+        if os.path.exists(img_path):    
+            os.remove(img_path)
 
     # list of plack pixels and coordinates we need 
     pixels = np.array(img)
@@ -161,31 +164,66 @@ def convert_to_a4(svg_in, svg_out, original_width, original_height):
 ##############################################################################################
                     ### NOT NEEDED BUT USED FOR TESTING PURPOSES ###
 # extract the coordinates
+# looking at the svg there are 2 paths created inner and outer
+# consider removing the inner lines 
 def extract_coordinates(svg_path, samples=50):
+    # adding a new function for area of path
+    def path_area(line):
+        # using shoelace formula
+        # https://www.101computing.net/the-shoelace-algorithm/
+        area = 0.0
+        for i in range(len(line)):
+            x1, y1 = line[i]
+            # wrap around the points
+            x2, y2 = line[(i + 1) % len(line)]
+            area += x1 * y2 - x2 * y1
+        return abs(area) / 2.0
     # FIXED STOKES 
     # using the svg library to extract paths 
-    paths, attributes = svg2paths(svg_path)
+    #paths, attributes = svg2paths(svg_path)
+    paths, _ = svg2paths(svg_path)
     all_strokes = []
-
+    # start by processing each path 
     for path in paths:
-        stroke = []
-        prev_end = None
-        for segment in path:
-            start = segment.point(0)
-            end = segment.point(1)
-            if prev_end is not None and abs(start - prev_end) > 1e-6:
-                if stroke:
-                    all_strokes.append(stroke)
-                stroke = []
-            for t in np.linspace(0, 1, samples):
-                point = segment.point(t)
-                stroke.append((point.real, point.imag))
-            prev_end = end
-        if stroke:
-            all_strokes.append(stroke)
+        # split into continuous subpaths
+        subpath = path.continuous_subpaths()
+        stroke = [] # area and points
+        for segment in subpath:
+            point = []
+            for seg in segment:
+                for t in np.linspace(0, 1, samples):
+                    p = seg.point(t)
+                    point.append((p.real, p.imag))
+            # less than 3 points cannot form a closed shape so skip
+            if len(point) < 3:
+                continue
+            area = abs(path_area(point))
+            stroke.append((area, point))
+        if not stroke:
+            continue
+        outer = max(stroke, key=lambda x: x[0])
+        all_strokes.append(outer[1])
+    return all_strokes, len(all_strokes)
 
-    num_strokes = len(all_strokes)
-    return all_strokes, num_strokes
+    # for path in paths:
+    #     stroke = []
+    #     prev_end = None
+    #     for segment in path:
+    #         start = segment.point(0)
+    #         end = segment.point(1)
+    #         if prev_end is not None and abs(start - prev_end) > 1e-6:
+    #             if stroke:
+    #                 all_strokes.append(stroke)
+    #             stroke = []
+    #         for t in np.linspace(0, 1, samples):
+    #             point = segment.point(t)
+    #             stroke.append((point.real, point.imag))
+    #         prev_end = end
+    #     if stroke:
+    #         all_strokes.append(stroke)
+
+    # num_strokes = len(all_strokes)
+    # return all_strokes, num_strokes
 
 # Adding a simulation to see how the drawing would look like
 def animation_simulation(strokes):
@@ -278,9 +316,10 @@ def display_svg(strokes):
 if __name__ == "__main__":
     #input_path = "images/shapes.png"
     #input_path = "images/drawinggator.jpeg"
-    input_path = "images/simple.png"
+    #input_path = "images/simple.png"
     #input_path = "images/roses.jpg"
     #input_path = "images/testing.png"
+    input_path = "images/prototype_design.jpg"
     output_path = "output.svg"
     potrace_executable = "potrace"
 
