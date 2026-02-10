@@ -20,7 +20,7 @@ class _SerialWorker(QObject):
         self._running = True
         self._tx.clear()
         self._timer = QTimer(self)
-        self._timer.setInterval(1)                 # 1–5 ms polling
+        self._timer.setInterval(20)                 # 1–5 ms polling
         self._timer.timeout.connect(self._poll)
         self._timer.start()
         print("[_SerialWorker] timer polling started", flush=True)
@@ -48,30 +48,7 @@ class _SerialWorker(QObject):
                 self.bytesReady.emit(b)
         except Exception as e:
             self.errorText.emit(f"Serial read error: {e}")
-    # @pyqtSlot()
-    # def run(self) -> None:
-    #     """Reader loop (thread context)."""
-    #     self._running = True
-    #     try:
-    #         while self._running and self._ser and self._ser.is_open:
-    #             try:
-    #                 waiting = self._ser.in_waiting
-    #                 if waiting:
-    #                     chunk = self._ser.read(waiting)
-    #                     if chunk:
-    #                         self.bytesReady.emit(chunk)
-    #                 else:
-    #                     time.sleep(0.01)  # yield CPU
-    #             except Exception as e:
-    #                 self.errorText.emit(f"Serial read error: {e}")
-    #                 break
-    #     finally:
-    #         try:
-    #             if self._ser and self._ser.is_open:
-    #                 self._ser.close()
-    #         except Exception:
-    #             pass
-    #         self.closed.emit()
+
 
     @pyqtSlot(bytes)
     def write(self, data: bytes) -> None:
