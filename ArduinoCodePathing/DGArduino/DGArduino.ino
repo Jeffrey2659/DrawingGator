@@ -9,6 +9,7 @@
 bool LED_on = false;
 
 StateHolder sh;
+MoveHandler mh;
 GCodeHandler gch(sh);
 
 void setup() {
@@ -19,7 +20,7 @@ void setup() {
   // 1 stop bit
   Serial.begin(9600, SERIAL_8N1);
 
-  setPinModes();
+  mh.setPinModes();
 }
 
 int lastMoveState = -1;
@@ -52,17 +53,17 @@ void loop() {
   else if (sh.moveState == StateHolder::IDLE) {
     bool hasCurLeg = sh.curLeg.valid;
     bool hasNextLeg = sh.nextLeg.valid;
-    clearMoves(); // clear moves while in idle
 
     if (!hasCurLeg && hasNextLeg) {
       sh.curLeg = sh.nextLeg;
       sh.nextLeg = LegData();
-      checkForLegSplit(sh);
-      setMovesFromLeg(sh);
+      checkForLegSplit(sh); // split leg if needed
+      setMovesFromLeg(sh); // set sh.lMove and sh.rMove
+      mh.initMoves(sh); // Use sh.lMove, sh.rMove, and sh.curLeg data to init vars for moving
       sh.moveState = StateHolder::MOVING; // moving stepper motors soon by leg
     } else if (sh.changedMove) {
       sh.moveState = StateHolder::MOVING; // moving stepper motors soon, but manually
-    }
+    } 
 
     if (sh.changedPWM) { // Servo should only move if not moving assembly right now
       sh.changedPWM = false;
@@ -75,14 +76,14 @@ void loop() {
   if (sh.moveState == StateHolder::MOVING) {
     // Check if there is something to do next
     if (sh.curLeg.valid) {
-      trySteps(sh);
+      mh.trySteps(sh);
     } else {
       sh.moveState == StateHolder::IDLE;
     }
 
     if (!sh.changedMove) {
       sh.moveState = StateHolder::IDLE;
-      sendOk();
+      if (!sh.nextLeg.valid) { sendOk(); } // Only say you are done when no next leg to exec!
     }
 
     /* TODO: CHANGE THIS LOGIC FOR NEW ALGORITHM

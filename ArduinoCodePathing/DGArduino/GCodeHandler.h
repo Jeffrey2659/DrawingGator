@@ -155,9 +155,13 @@ public:
             if (!hasArg('Y', commandPairs)) { return false; }
             gx = getArg('X', commandPairs);
             gy = getArg('Y', commandPairs);
-            f = getArg('F', commandPairs);
-            f = (f != 0 ? f : statesPtr->curMoveSpeed );
-            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, RAPID_LINE, f)); // Speeeed!
+            // f = getArg('F', commandPairs);
+            // f = (f != 0 ? f : statesPtr->curMoveSpeed * 2 );
+            f = statesPtr->curMoveSpeed;
+            // Idk why but this is making lines too long
+            // Just changing to be SPLIT_LINE instead of RAPID_LINE as temp fix
+            // Currently, G0 is alias for G1
+            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, SPLIT_LINE, f)); // Speeeed!
             // Ok or Err sent in holdData();
             break;
 
@@ -166,8 +170,9 @@ public:
             if (!hasArg('Y', commandPairs)) { return false; }
             gx = getArg('X', commandPairs);
             gy = getArg('Y', commandPairs);
-            f = getArg('F', commandPairs);
-            f = (f != 0 ? f : statesPtr->curMoveSpeed );
+            // f = getArg('F', commandPairs);
+            // f = (f != 0 ? f : statesPtr->curMoveSpeed );
+            f = statesPtr->curMoveSpeed;
             holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, SPLIT_LINE, f));
             // Ok or Err sent in holdData();
             break;
@@ -181,8 +186,9 @@ public:
             gy = getArg('Y', commandPairs);
             cx = getArg('I', commandPairs);
             cy = getArg('J', commandPairs);
-            f = getArg('F', commandPairs);
-            f = (f != 0 ? f : statesPtr->curMoveSpeed );
+            // f = getArg('F', commandPairs);
+            // f = (f != 0 ? f : statesPtr->curMoveSpeed );
+            f = statesPtr->curMoveSpeed;
             holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, cx + xoff, cy + yoff, CLW_ROTATE, f));
             // Ok or Err sent in holdData();
             break;
@@ -196,8 +202,9 @@ public:
             gy = getArg('Y', commandPairs);
             cx = getArg('I', commandPairs);
             cy = getArg('J', commandPairs);
-            f = getArg('F', commandPairs);
-            f = (f != 0 ? f : statesPtr->curMoveSpeed );
+            // f = getArg('F', commandPairs);
+            // f = (f != 0 ? f : statesPtr->curMoveSpeed );
+            f = statesPtr->curMoveSpeed;
             holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, cx + xoff, cy + yoff, CCW_ROTATE, f));
             break;
 

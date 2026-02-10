@@ -48,16 +48,13 @@ void shiftPosBySteps(StateHolder& sh, int lSteps, int rSteps) {
   sh.curPos = getPosFromLengths(curLens);
 }
 
+// Why is this too long with G0 but fine with G1? Remapping G0 to G1 for time being
 void setMovesFromLeg(StateHolder& sh) {
-  Serial.println("Setting moves...");
-  // INVESTIGATE TODO
   Vector2d startLens = getLengthsFromPos(sh.curLeg.start);
   Vector2d goalLens = getLengthsFromPos(sh.curLeg.goal);
   Vector2d lengthDelta = goalLens - startLens;
   sh.lMove = round(lengthDelta.X/MIN_STEP_DIST);
   sh.rMove = round(lengthDelta.Y/MIN_STEP_DIST);
-  Serial.println(sh.lMove);
-  Serial.println(sh.rMove);
 }
 
 
@@ -75,7 +72,7 @@ void checkForLegSplit(StateHolder& sh) {
     case SPLIT_LINE:
       Vector2d diff = sh.curLeg.goal - sh.curLeg.start;
       if (diff.Magnitude() < MAX_STRAIGHT_LEG_DIST) {
-        Serial.println("NOT LONG ENOUGH TO SPLIT");
+        if (sh.debugMode) { Serial.println("NOT LONG ENOUGH TO SPLIT"); }
         return; // Good enough for gov work
       }
       // Aha! Cut the leg into its smaller right now part and the everything else part!
@@ -84,13 +81,13 @@ void checkForLegSplit(StateHolder& sh) {
       // if remaining dist is negligible, don't even bother making new leg
       if ((sh.curLeg.goal - split_point).Magnitude() < MIN_STEP_DIST/2) {
         sh.nextLeg = LegData(); // invalid next leg
-        Serial.println("NOT ENOUGH EXTRA TO SPLIT");
+        if (sh.debugMode) { Serial.println("NOT ENOUGH EXTRA TO SPLIT"); }
         return;
       } else {
         sh.nextLeg = LegData(0, 0, 0, 0, sh.curLeg.algo, sh.curLeg.speed);
         sh.nextLeg.goal = sh.curLeg.goal;
         sh.curLeg.goal = split_point;
-        Serial.println("SPLIT MADE");
+        if (sh.debugMode) { Serial.println("SPLIT MADE"); }
       }
       break;
 
