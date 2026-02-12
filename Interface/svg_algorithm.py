@@ -70,6 +70,7 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     #     image = background
 ################################################################################
     # need color mapping here
+    # using LAB gets more colors but not accurte
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     #image = image.convert('L')
@@ -92,25 +93,30 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
 
     ## REFERENCE: https://blog.finxter.com/5-best-ways-to-perform-color-quantization-in-an-image-using-k-means-in-opencv-python/
     ## https://stackoverflow.com/questions/73666119/open-cv-python-quantize-to-a-given-color-palette 
+    
+    # blurring image?
+    blurred = cv2.GaussianBlur(image, (3, 3), 0)
+
     # using color quantanization
-    color_img = image.reshape(-1, 3).astype(np.float32)
+    color_img = blurred.reshape(-1, 3).astype(np.float32)
     # define criteria
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-    k = 4
-    _, labels, centers = cv2.kmeans(color_img, k, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.01)
+    # increase for better results
+    k = 12
+    _, labels, centers = cv2.kmeans(color_img, k, None, criteria, 10, cv2.KMEANS_PP_CENTERS)
 
     # back to 8 bits
     centers = np.uint8(centers)
-    quantized_img = centers[labels.flatten()].reshape(image.shape)
+    quantized_img = centers[labels.flatten()].reshape(blurred.shape)
 
     # need to somehow save the file to edit it
     # https://coderivers.org/blog/python-svg/
     dwg = svgwrite.Drawing(output_path, profile='tiny', size=(width, height))
 
     # covert to grayscale
-    img_gray = cv2.cvtColor(quantized_img, cv2.COLOR_RGB2GRAY)
-    pixels = np.array(img_gray)
-    lines = [(x, y) for y in range(height) for x in range(width) if pixels[y, x] == 255]
+    # img_gray = cv2.cvtColor(quantized_img, cv2.COLOR_RGB2GRAY)
+    # pixels = np.array(img_gray)
+    # lines = [(x, y) for y in range(height) for x in range(width) if pixels[y, x] == 255]
     
     for i, color in enumerate(centers):
         # https://blog.finxter.com/5-best-ways-to-color-identification-in-images-using-python-and-opencv/
@@ -155,7 +161,7 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     # also width and height for scaling purposes
     dwg.save()
     split_svg_paths(output_path)
-    return lines, width, height, width_inch, height_inch, width_cm, height_cm, output_path
+    return width, height, width_inch, height_inch, width_cm, height_cm, output_path
 
     # get the size of the image
     # width, height = image.size
@@ -486,14 +492,14 @@ if __name__ == "__main__":
     #input_path = "images/shapes.png"
     #input_path = "images/drawinggator.jpeg"
     #input_path = "images/simple.png"
-    input_path = "images/logo.jpg"
+    #input_path = "images/logo.jpg"
     #input_path = "images/testing.png"
     #input_path = "images/prototype_design.jpg"
-    #input_path = "images/gator.jpg"
+    input_path = "images/gator.jpg"
     output_path = "output.svg"
     potrace_executable = "potrace"
 
-    lines, width, height, width_inch, height_inch, width_cm, height_cm, output_path = conversion_svg(input_path, output_path, potrace_executable)
+    width, height, width_inch, height_inch, width_cm, height_cm, output_path = conversion_svg(input_path, output_path, potrace_executable)
     convert_to_a4(output_path, output_path, width, height)
     # animation lines
     strokes, num_strokes = extract_coordinates(output_path, samples=30)
