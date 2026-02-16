@@ -119,6 +119,9 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     # lines = [(x, y) for y in range(height) for x in range(width) if pixels[y, x] == 255]
     
     for i, color in enumerate(centers):
+        # skip near white colors
+        if np.all(color > 250):
+            continue
         # https://blog.finxter.com/5-best-ways-to-color-identification-in-images-using-python-and-opencv/
         img = cv2.inRange(
             quantized_img,
@@ -138,12 +141,21 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
         cv2.imwrite(img_path, img)
         
         # call subprocess since potrace does not work for my computer 
+        # REFERENCE: https://potrace.sourceforge.net/potrace.1.html
         try:
-            subprocess.run([potrace_path, img_path, "-s", "-o", img_svg], check=True)
+            subprocess.run([
+                potrace_path, 
+                img_path, 
+                "-s", 
+                "-a", "0", # alphamax for cornerns (helps with the square image)
+                "-t", "70", # turdside mostly for noise
+                "-k", "0.3",
+                "-o", 
+                img_svg], check=True)
             paths, _ = svg2paths(img_svg)
             hex_color = rgb2hex(color[0], color[1], color[2])
             for path in paths:
-                dwg.add(dwg.path(d=path.d(), fill=hex_color))
+                dwg.add(dwg.path(d=path.d(), fill=hex_color, stroke='none'))
             #split_svg_paths(img_svg)
             #print("SVG created successfully!")
         finally:
@@ -494,8 +506,8 @@ if __name__ == "__main__":
     #input_path = "images/simple.png"
     #input_path = "images/logo.jpg"
     #input_path = "images/testing.png"
-    #input_path = "images/prototype_design.jpg"
-    input_path = "images/gator.jpg"
+    input_path = "images/prototype_design.jpg"
+    #input_path = "images/gator.jpg"
     output_path = "output.svg"
     potrace_executable = "potrace"
 
