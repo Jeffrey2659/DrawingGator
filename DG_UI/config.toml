@@ -13,5 +13,5 @@ segment_first = "M3 S70\nG00 X{x:.4f} Y{y:.4f}\nM3 S250\n"
 segment = "G01 X{x:.4f} Y{y:.4f}\n"
 
 layer_end = ""
-document_end = "M3 S70\nM5\nM2\n"
+document_end = "M3 S70\nG00 X0 Y0\nM2\n"
 info = "GRBL profile without feed rate"
