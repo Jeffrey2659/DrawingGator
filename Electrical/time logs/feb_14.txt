@@ -1,0 +1,5 @@
+2-14
+4:00-8:00pm
+total: 4.0 hours
+
+Fixed up some connections. Added LEDs. Did CAD for a casing.
