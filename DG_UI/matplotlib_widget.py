@@ -43,7 +43,7 @@ class MatplotlibWidget(QWidget):
             num_strokes = len(strokes)
         
         # Get all points for axis limits
-        all_points = [p for stroke in strokes for p in stroke['points']]
+        all_points = [p for stroke in strokes for p in stroke]
         if not all_points:
             return
 
@@ -60,11 +60,10 @@ class MatplotlibWidget(QWidget):
         
         # Draw all strokes
         for stroke in strokes:
-            color = stroke.get('color', '#000000')
             if stroke:
-                xs_stroke = [p[0] for p in stroke['points']]
-                ys_stroke = [p[1] for p in stroke['points']]
-                self.ax.plot(xs_stroke, ys_stroke, color=color, linewidth=2)
+                xs_stroke = [p[0] for p in stroke]
+                ys_stroke = [p[1] for p in stroke]
+                self.ax.plot(xs_stroke, ys_stroke, 'k-', linewidth=2)
         
         # adding a line that shows how many lines are in the image uploaded
         '''

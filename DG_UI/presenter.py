@@ -349,7 +349,7 @@ class Presenter:
                 # 1) Raster → SVG
                 self.v.log("Conversion has started")
                 # adjust return values to match your actual conversion_svg version
-                width, height, width_inch, height_inch, width_cm, height_cm, output_svg = conversion_svg(svg_path)
+                lines, width, height, width_inch, height_inch, width_cm, height_cm, output_svg = conversion_svg(svg_path)
                 svg_path = output_svg  # now work with the generated SVG
                 self.v.log("Yay! Raster image converted to SVG.")
 
