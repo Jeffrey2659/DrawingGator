@@ -1,7 +1,9 @@
 Simulator/Pulley Simulator.rbxl.lock
 __pycache__/
-*.pyc
-
-
-Interface/__pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+CLAUDE.md
+Desktop - Shortcut.lnk
+DG_UI/output.gcode
+DG_UI/output.svg

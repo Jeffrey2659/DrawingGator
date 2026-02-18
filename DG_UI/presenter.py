@@ -6,11 +6,86 @@ from serial_service import SerialService
 from gcode_streamer import GCodeStreamer
 from vpype_runner import VpypeRunner
 from pathlib import Path
+import serial
 import os
 
 
 # load the algorithm and all its functions
 from Interface.svg_algorithm import conversion_svg, extract_coordinates, animation_simulation, display_svg
+
+import re
+
+def parse_gcode_to_strokes(lines: list[bytes]) -> list[list[tuple[float, float]]]:
+    """
+    Parse G-code lines and extract drawing strokes for visualization.
+    Returns a list of strokes, where each stroke is a list of (x, y) points.
+    """
+    strokes = []
+    current_stroke = []
+    x, y = 0.0, 0.0
+    pen_down = False
+
+    # Regex patterns for G-code parsing
+    coord_pattern = re.compile(r'([XYZIJS])(-?\d+\.?\d*)', re.IGNORECASE)
+
+    for raw in lines:
+        try:
+            line = raw.decode("ascii", errors="replace").strip().upper()
+        except Exception:
+            continue
+
+        # Skip comments and empty lines
+        if not line or line.startswith(';') or line.startswith('('):
+            continue
+
+        # Remove inline comments
+        if ';' in line:
+            line = line.split(';')[0].strip()
+        if '(' in line:
+            line = re.sub(r'\([^)]*\)', '', line).strip()
+
+        # Parse coordinates from the line
+        coords = dict(coord_pattern.findall(line))
+        new_x = float(coords.get('X', x))
+        new_y = float(coords.get('Y', y))
+
+        # Check for pen up/down commands (M3 S70 = up, M3 S250 = down)
+        if 'M3' in line:
+            s_match = re.search(r'S(\d+)', line)
+            if s_match:
+                s_val = int(s_match.group(1))
+                if s_val <= 100:  # pen up (S70)
+                    if pen_down and current_stroke:
+                        strokes.append(current_stroke)
+                        current_stroke = []
+                    pen_down = False
+                else:  # pen down (S250)
+                    pen_down = True
+                    # Start new stroke at current position
+                    current_stroke = [(x, y)]
+
+        # G00 = rapid travel (pen should be up)
+        if line.startswith('G00') or line.startswith('G0 '):
+            x, y = new_x, new_y
+            # If somehow pen is down during G0, add the point
+            if pen_down and current_stroke:
+                current_stroke.append((x, y))
+
+        # G01 = linear draw move
+        elif line.startswith('G01') or line.startswith('G1 '):
+            x, y = new_x, new_y
+            if pen_down:
+                if not current_stroke:
+                    current_stroke = [(x, y)]
+                else:
+                    current_stroke.append((x, y))
+
+    # Don't forget the last stroke
+    if current_stroke and len(current_stroke) > 1:
+        strokes.append(current_stroke)
+
+    return strokes
+
 
 class Presenter:
     """
@@ -26,6 +101,9 @@ class Presenter:
         self.s = serial_service
         self.m = model
         self.streamer = GCodeStreamer(self.s)
+        self._state_block_active = False
+        self._state_lines: list[str] = []
+        self._rx_buffer = ""
 
 
         # This checks if the view has an attribute 'on_upload_svg' and if so, assigns the presenter's 'handle_upload_svg' method to it.
@@ -46,7 +124,7 @@ class Presenter:
         self.streamer.pausedChanged.connect(self._on_paused_changed)
 
         #used for logging received data from the device
-        self.s.dataReceived.connect(self._on_rx_log)
+        #self.s.dataReceived.connect(self._on_rx_log)
         #used for debugging raw received data
         self.s.dataReceived.connect(lambda b: print(f"[RX RAW] {b!r}", flush=True))
         #manual send
@@ -100,6 +178,12 @@ class Presenter:
             self.v.log(f"Loaded {n} lines from {self.m.loaded_name}")
             joined = "\n".join(line.decode("ascii", errors="ignore") for line in self.m.lines)
             self.v.log("=== Loaded G-code ===\n" + joined)
+
+            # Parse G-code and update preview
+            strokes = parse_gcode_to_strokes(self.m.lines)
+            if strokes and hasattr(self.v, "mpl_widget"):
+                self.v.mpl_widget.plot_svg(strokes, num_strokes=len(strokes))
+                self.v.log(f"Preview updated: {len(strokes)} strokes")
         except Exception as e:
             self.v.warn(f"Could not read file:\n{e}")
 
@@ -112,6 +196,13 @@ class Presenter:
             return
         self.m.reset_job_counters()
         self.v.log("Starting G-code stream…")
+        for raw in self.m.lines:
+            try:
+                line = raw.decode("ascii", errors="replace").rstrip()
+            except Exception:
+                line = repr(raw)
+            if line:
+                self.v.log(f">> {line}")
         self.streamer.start(self.m.lines)
         self.v.log("Streaming started: Debug Checkpoint 1.")
 
@@ -131,9 +222,50 @@ class Presenter:
 
     # ---- Service callbacks ----
     def _on_device_data(self, data: bytes):
-        for line in data.decode("utf-8", errors="replace").splitlines():
-            if line.strip():
-                self.v.log(f"<< {line.strip()}")
+        # 1) Decode and normalize newlines
+        text = data.decode("utf-8", errors="replace")
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+        # 2) Append to rolling buffer
+        self._rx_buffer += text
+
+        # 3) Extract complete lines one by one
+        while True:
+            nl = self._rx_buffer.find("\n")
+            if nl == -1:
+                # No full line yet; leave remainder for next chunk
+                break
+
+            raw_line = self._rx_buffer[:nl]
+            self._rx_buffer = self._rx_buffer[nl+1:]  # remove that line + '\n'
+
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            # Hand off to line-level handler
+            self._handle_rx_line(line)
+
+
+    def _handle_rx_line(self, line: str):
+        """Process a single complete line from the controller."""
+        # State-dump logic (G60 etc.) still works unchanged
+        if line.startswith("Printing State:"):
+            self._state_block_active = True
+            self._state_lines = [line]
+            return
+
+        if self._state_block_active:
+            self._state_lines.append(line)
+            if line.startswith("End of States"):
+                block = "\n".join("<< " + l for l in self._state_lines)
+                self.v.log(block)
+                self._state_block_active = False
+                self._state_lines = []
+            return
+
+        # Normal line
+        self.v.log(f"<< {line}")
 
     def _on_error_text(self, text: str):
         self.v.warn(text)

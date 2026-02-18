@@ -23,9 +23,9 @@ class GCodeStreamer(QObject):
         self.total = 0
         self.awaiting_ok = False
         self._paused = False
-
+        
         self._rx = bytearray()
-
+        
 
     def start(self, lines: list[bytes]):
         self.lines = lines or []
@@ -71,7 +71,7 @@ class GCodeStreamer(QObject):
     # ----- internals -----
     def _on_data(self, data: bytes):
          self._rx.extend(data)
-         print(f"[RX raw] {data!r}", flush=True)
+         #print(f"[RX raw] {data!r}", flush=True)
 
          while True:
             #the find function looks for the first occurrence of b'\n' in the bytearray self._rx, and return -1 if not found 
@@ -99,10 +99,10 @@ class GCodeStreamer(QObject):
 
     def _try_send_next(self):
         if self._paused or self.awaiting_ok:
-            print(f"[GCodeStreamer] _try_send_next(): paused={self._paused}, awaiting_ok={self.awaiting_ok}, returning early", flush=True)
+            #print(f"[GCodeStreamer] _try_send_next(): paused={self._paused}, awaiting_ok={self.awaiting_ok}, returning early", flush=True)
             return
         if self.idx >= self.total:
-            print("[GCodeStreamer] _try_send_next(): all done, stopping timer and emitting finished", flush=True)
+           # print("[GCodeStreamer] _try_send_next(): all done, stopping timer and emitting finished", flush=True)
             self.timer.stop()
             self.finished.emit()
             return

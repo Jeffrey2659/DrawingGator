@@ -1,0 +1,40 @@
+1-15
+10:30am-1:00pm
+total: 2.5 hours
+
+1-20
+5:30-9:00pm
+total: 3.5 hours
+
+1-21
+1:30pm-4:30pm
+total: 3 hours
+
+1-27
+7:00pm-12:20am
+total: 5.2 hours
+
+1-30
+10:00am-2:00pm
+4:00pm-7:30pm
+total: 7.5 hours
+
+2-5
+5:00pm-7:40pm
+total: 2.7 hours
+
+2-12
+12:00-4:00pm
+6:00-10:00pm
+total: 8.0 hours
+
+2-14
+4:00-8:00pm
+total: 4.0 hours
+
+2/26
+3:00-6:00pm
+9:00pm-11:00pm
+total: 5.0 hours
+
+total hours (4 weeks): 41.4

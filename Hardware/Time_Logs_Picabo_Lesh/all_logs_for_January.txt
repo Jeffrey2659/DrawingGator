@@ -1,0 +1,6 @@
+Design time sheet:
+1/15/2026 10:30-1pm fix electrical issue
+1/20/ 5:30-9:00 research pcb + bulk caps
+1/21 1:30-4:30 pick components for pcb
+1/27 7-12:20 pick components for pcb + find libs
+
