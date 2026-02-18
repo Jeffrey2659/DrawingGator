@@ -114,6 +114,10 @@ class Presenter:
         # self.v.on_upload_image = self._on_upload_image
         self._vp = VpypeRunner()
         self._vp.finished.connect(self._on_vpype_finished)
+        self._vp.textSvgFinished.connect(self._on_text_svg_finished)
+
+        if hasattr(self.v, "on_draw_text"):
+            self.v.on_draw_text = self.handle_draw_text
 
         # Service -> Presenter
         self.s.dataReceived.connect(self._on_device_data)
@@ -380,6 +384,19 @@ class Presenter:
         out_path = str(Path(svg_path).with_suffix(".gcode"))
         self.v.log(f"G-code will be saved to: {Path(out_path).resolve()}")
         self._vp.run_svg_to_gcode(svg_path, out_path=out_path)
+    def handle_draw_text(self, text: str, font: str, size: float, mirror: bool = False):
+        self.v.log(f"Drawing text: \"{text}\" (font={font}, size={size}, mirror={mirror})")
+        self._vp.run_text_to_svg(text, font, size, mirror=mirror)
+
+    def _on_text_svg_finished(self, ok: bool, svg_path: str, log_text: str):
+        if log_text:
+            self.v.log(log_text)
+        if not ok:
+            self.v.warn("Text-to-SVG conversion failed.")
+            return
+        self.v.log(f"Text SVG created: {svg_path}")
+        self.handle_upload_svg(svg_path)
+
     def _on_vpype_finished(self, ok: bool, gcode_path: str, log_text: str):
         if log_text:
             self.v.log(log_text + ("\n" if not log_text.endswith("\n") else ""))
