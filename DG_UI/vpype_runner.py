@@ -39,11 +39,14 @@ CONFIG_CANDIDATES = [
 
 class VpypeRunner(QObject):
     finished = pyqtSignal(bool, str, str)   # (ok, gcode_path, log_text)
+    textSvgFinished = pyqtSignal(bool, str, str)  # (ok, svg_path, log_text)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._proc = None
         self._log = []
+        self._text_proc = None
+        self._text_log = []
         
     
    
@@ -97,3 +100,46 @@ class VpypeRunner(QObject):
         ok = (code == 0)
         self.finished.emit(ok, out_path if ok else "", "".join(self._log))
         self._proc = None
+
+    # ---- Text-to-SVG conversion ----
+
+    def run_text_to_svg(self, text: str, font: str = "futural",
+                        size: float = 18.0, out_path: str | None = None,
+                        mirror: bool = False):
+        if not text.strip():
+            self.textSvgFinished.emit(False, "", "No text provided.")
+            return
+        if self._text_proc is not None:
+            self.textSvgFinished.emit(False, "", "Text conversion already running.")
+            return
+
+        if out_path is None:
+            out_path = str(Path.home() / "Downloads" / "dg_text_output.svg")
+
+        sx = "-1" if mirror else "1"
+        program = "vpype"
+        args = [
+            "text", "-f", font, "-s", str(size), text,
+            "scale", "--", sx, "1",
+            "write", Path(out_path).as_posix(),
+        ]
+
+        self._text_log = []
+        self._text_proc = QProcess(self)
+        self._text_proc.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+        self._text_proc.readyReadStandardOutput.connect(self._on_text_read)
+        self._text_proc.finished.connect(
+            lambda code, status: self._on_text_finished(code, status, out_path))
+        self._text_proc.start(program, args)
+
+    def _on_text_read(self):
+        if not self._text_proc:
+            return
+        data = bytes(self._text_proc.readAllStandardOutput()).decode("utf-8", "replace")
+        if data:
+            self._text_log.append(data)
+
+    def _on_text_finished(self, code, status, out_path: str):
+        ok = (code == 0)
+        self.textSvgFinished.emit(ok, out_path if ok else "", "".join(self._text_log))
+        self._text_proc = None
