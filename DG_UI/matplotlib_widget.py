@@ -41,9 +41,14 @@ class MatplotlibWidget(QWidget):
         # num strokes
         if num_strokes is None:
             num_strokes = len(strokes)
-        
-        # Get all points for axis limits
-        all_points = [p for stroke in strokes for p in stroke]
+
+        def get_points(stroke):
+            return stroke['points'] if isinstance(stroke, dict) else stroke
+
+        def get_color(stroke):
+            return stroke['color'] if isinstance(stroke, dict) else 'black'
+
+        all_points = [p for stroke in strokes for p in get_points(stroke)]
         if not all_points:
             return
 
@@ -60,17 +65,12 @@ class MatplotlibWidget(QWidget):
         
         # Draw all strokes
         for stroke in strokes:
-            if stroke:
-                xs_stroke = [p[0] for p in stroke]
-                ys_stroke = [p[1] for p in stroke]
-                self.ax.plot(xs_stroke, ys_stroke, 'k-', linewidth=2)
-        
-        # adding a line that shows how many lines are in the image uploaded
-        '''
-        self.figure.text(0.02, 0.98, f'Number of Strokes: {num_strokes}',
-                     ha = 'left', va = 'top',
-                     fontsize = 12, fontweight = 'bold')
-        '''
+            pts = get_points(stroke)
+            color = get_color(stroke)
+            if pts:
+                xs_stroke = [p[0] for p in pts]
+                ys_stroke = [p[1] for p in pts]
+                self.ax.plot(xs_stroke, ys_stroke, color=color, linewidth=2)
 
         # adding line to display the image size
         if image_size is not None:
