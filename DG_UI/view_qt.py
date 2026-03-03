@@ -6,6 +6,7 @@ from DG_UI import Ui_MainWindow
 from PyQt6.QtCore import Qt
 from matplotlib_widget import MatplotlibWidget
 from color_widget import ColorWidget
+from text_dialog import TextDrawDialog
 from pathlib import Path
 
 class ViewQt(QMainWindow, Ui_MainWindow):
@@ -19,6 +20,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
     on_resume_clicked = None
     on_upload_svg = None
     on_upload_image = None
+    on_draw_text = None
 
     # Add additional line for svg preview revert
     on_show_svg_preview = None
@@ -281,6 +283,11 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         #svg upload
         #this is mapped to the uploadImage button rn, I might add a separate button later
         self.actionUpload_Image.triggered.connect(self._ask_open_svg)
+
+        # Draw Text menu action
+        self.actionDraw_Text = QAction("Draw Text", self)
+        self.menuMenu.addAction(self.actionDraw_Text)
+        self.actionDraw_Text.triggered.connect(self._ask_draw_text)
         # If you add Pause/Resume buttons in .ui (names: pauseBtn/resumeBtn), hook them:
         # self.pauseBtn.clicked.connect(lambda: self.on_pause_clicked and self.on_pause_clicked())
         # self.resumeBtn.clicked.connect(lambda: self.on_resume_clicked and self.on_resume_clicked())
@@ -342,6 +349,13 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         if path and self.on_upload_svg:
             self.on_upload_svg(path)
 
+
+    def _ask_draw_text(self):
+        dlg = TextDrawDialog(self)
+        if dlg.exec() == TextDrawDialog.DialogCode.Accepted:
+            text = dlg.get_text()
+            if text.strip() and self.on_draw_text:
+                self.on_draw_text(text, dlg.get_font(), dlg.get_size(), dlg.get_mirror())
 
     def open_color_window(self):
         self.color_window = ColorWidget(self)

@@ -115,6 +115,10 @@ class Presenter:
         # self.v.on_upload_image = self._on_upload_image
         self._vp = VpypeRunner()
         self._vp.finished.connect(self._on_vpype_finished)
+        self._vp.textSvgFinished.connect(self._on_text_svg_finished)
+
+        if hasattr(self.v, "on_draw_text"):
+            self.v.on_draw_text = self.handle_draw_text
 
         # Service -> Presenter
         self.s.dataReceived.connect(self._on_device_data)
@@ -389,6 +393,7 @@ class Presenter:
         self.v.log("Starting vpype conversion to G-code…")
         out_path = str(Path(svg_path).with_suffix(".gcode"))
         self.v.log(f"G-code will be saved to: {Path(out_path).resolve()}")
+        self._vp.run_svg_to_gcode(svg_path, out_path=out_path)
         self._vp.run_svg_to_gcode(svg_path, out_path=out_path, profile=self._speed_profile)
     def handle_speed_preset(self, preset: str):
         profile_map = {
