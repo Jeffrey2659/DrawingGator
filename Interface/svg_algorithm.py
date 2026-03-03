@@ -20,7 +20,6 @@ from lxml import etree
 import re
 # REFERENCE-ISH https://github.com/Bhomik04/image-to-svg/blob/main/python%20practice.py
 
-
 # remove the inner path from svg which is structured as 
 # M ... z m ... z
 def split_svg_paths(svg_path):
@@ -28,17 +27,22 @@ def split_svg_paths(svg_path):
     root = tree.getroot()
     namespace = {'svg': 'http://www.w3.org/2000/svg'}
     paths = root.findall('.//svg:path', namespaces=namespace)
-    for elements in paths:
+    
+    if len(paths) > 1:
+        parent = paths[0].getparent()
+        parent.remove(paths[0])
+    
+    for elements in root.findall('.//svg:path', namespaces=namespace):
         d = elements.get('d')
         if not d:
             continue
         # split at 'M' or 'm' to get subpaths
         subpaths = re.split(r'(?=[Mm])', d)
-        # clean up any empty strings
         subpaths = [s.strip() for s in subpaths if s.strip()]
 
         if len(subpaths) > 1:
             elements.set('d', subpaths[0])
+    
     tree.write(svg_path, pretty_print=True)
 
 # function to convert png/jpg to svg
@@ -84,7 +88,36 @@ def conversion_svg(file_path, output_path = "output.svg", potrace_path = "potrac
     
     # using open cv to threshold the image for better results
     # https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html 
-    _, img = cv2.threshold(image, 128, 255, cv2.THRESH_BINARY)
+    # Smooth noise but preserve edges
+
+    ## This section extracts 73 strokes (includes a canvas border) ==> FOR GATOR IMAGE
+    ## Includes a border with every image processed
+    img = cv2.adaptiveThreshold(
+        image,
+        255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        \
+        cv2.THRESH_BINARY,
+        11,
+        2
+    )
+    img = cv2.bitwise_not(img)
+
+    ## This section extracts 322 strokes ==> FOR GATOR IMAGE
+    # img = cv2.adaptiveThreshold(
+    #     image,
+    #     255,
+    #     cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+    #     \
+    #     cv2.THRESH_BINARY,
+    #     11,
+    #     2
+    # )
+    # kernel = np.ones((2,2), np.uint8)
+    # img = cv2.dilate(img, kernel, iterations=1)
+    # img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel, iterations=1)
+
+
     # output that potrace expects
     # https://potrace.sourceforge.net/ 
     img_path = "temp.pbm"
@@ -315,11 +348,12 @@ def display_svg(strokes):
 # add main
 if __name__ == "__main__":
     #input_path = "images/shapes.png"
-    #input_path = "images/drawinggator.jpeg"
+    input_path = "images/drawinggator.jpeg"
     #input_path = "images/simple.png"
-    #input_path = "images/roses.jpg"
+    #input_path = "images/logo.jpg"
     #input_path = "images/testing.png"
-    input_path = "images/prototype_design.jpg"
+    #input_path = "images/prototype_design.jpg"
+    #input_path = "images/gator.jpg"
     output_path = "output.svg"
     potrace_executable = "potrace"
 
@@ -327,4 +361,5 @@ if __name__ == "__main__":
     convert_to_a4(output_path, output_path, width, height)
     # animation lines
     strokes, num_strokes = extract_coordinates(output_path, samples=30)
-    animation_simulation(strokes)
+    #animation_simulation(strokes)
+    display_svg(strokes)

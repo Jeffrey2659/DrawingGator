@@ -1,6 +1,6 @@
 # view_qt.py
-from typing import Optional, List
-from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QProgressBar, QDockWidget, QWidget, QHBoxLayout, QLineEdit, QPushButton
+from typing import Optional
+from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QProgressBar, QDockWidget, QWidget, QHBoxLayout, QLineEdit, QPushButton, QLabel
 from PyQt6.QtGui import QAction
 from DG_UI import Ui_MainWindow
 from PyQt6.QtCore import Qt
@@ -24,7 +24,8 @@ class ViewQt(QMainWindow, Ui_MainWindow):
 
     # Add additional line for svg preview revert
     on_show_svg_preview = None
-    
+    on_speed_preset = None
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
@@ -223,6 +224,37 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         dock.setWidget(w)
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
 
+        # Speed preset buttons
+        speed_container = QWidget(self.centralwidget)
+        speed_layout = QHBoxLayout(speed_container)
+        speed_layout.setContentsMargins(8, 4, 8, 4)
+        speed_layout.addWidget(QLabel("Draw Speed:"))
+
+        self._btn_slow   = QPushButton("Slow\n(50 q-in/min)",   speed_container)
+        self._btn_normal = QPushButton("Normal\n(100 q-in/min)", speed_container)
+        self._btn_fast   = QPushButton("Fast\n(200 q-in/min)",  speed_container)
+
+        for btn in (self._btn_slow, self._btn_normal, self._btn_fast):
+            speed_layout.addWidget(btn)
+
+        self._speed_buttons = {
+            "slow":   self._btn_slow,
+            "normal": self._btn_normal,
+            "fast":   self._btn_fast,
+        }
+
+        # Insert before plainTextEdit in the central layout
+        idx = self.verticalLayout_2.indexOf(self.plainTextEdit)
+        self.verticalLayout_2.insertWidget(idx, speed_container)
+
+        # Wire up clicks
+        self._btn_slow.clicked.connect(lambda: self._on_speed_btn("slow"))
+        self._btn_normal.clicked.connect(lambda: self._on_speed_btn("normal"))
+        self._btn_fast.clicked.connect(lambda: self._on_speed_btn("fast"))
+
+        # Highlight normal as the default
+        self._highlight_speed_btn("normal")
+
         # Status progress bar (no .ui changes needed)
         self._progress = QProgressBar(self)
         self._progress.setMinimum(0)
@@ -237,7 +269,6 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         # UI -> Presenter callbacks
         #if no lambda then it calls the function immediately instead of waiting for the button to be clicked
         #the lambda creates an anonymous function that calls the function when the button is clicked
-        self.refresh.clicked.connect( lambda: self.on_refresh_clicked and self.on_refresh_clicked())
         self.connect.clicked.connect(lambda: self.on_connect_clicked and self.on_connect_clicked())
         self.sendGcode.clicked.connect(lambda: self.on_send_clicked and self.on_send_clicked())
         self.actionUpload_Gcode.triggered.connect(lambda: self.on_upload_clicked and self.on_upload_clicked())
@@ -265,13 +296,8 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self.create_show_svg_preview()
 
 
-    def set_ports(self, ports: List[str]) -> None:
-        self.portOpt.clear()
-        for p in ports:
-            self.portOpt.addItem(p)
-
     def set_connected(self, connected: bool, desc: str = "") -> None:
-        self.connect.setText("Disconnect" if connected else "Connect")
+        self.connect.setText("Disconnect" if connected else "Connect to Arduino")
         self.statusbar.showMessage(desc if connected else "Disconnected", 3000)
 
     def set_progress(self, sent: int, total: int) -> None:
@@ -294,16 +320,6 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         )
         return path or None
 
-    def current_port(self) -> str:
-        return self.portOpt.currentText().strip()
-
-    def current_baud(self) -> int:
-        txt = self.baudOpt.currentText().strip()
-        try:
-            return int(txt)
-        except ValueError:
-            return 115200
-        
     def _send_manual_from_line(self):
         txt = self.manualLine.text().strip()
         if txt and self.on_manual_send:
@@ -367,3 +383,17 @@ class ViewQt(QMainWindow, Ui_MainWindow):
             self.preview_dock.show()
         self.preview_dock.raise_()
         self.preview_dock.activateWindow()
+
+    def _on_speed_btn(self, preset: str):
+        self._highlight_speed_btn(preset)
+        if self.on_speed_preset:
+            self.on_speed_preset(preset)
+
+    def _highlight_speed_btn(self, preset: str):
+        active_style = (
+            "background-color: #a8d5ba; color: #2d5a3d;"
+            "border: 2px solid #2d5a3d; border-radius: 4px;"
+            "padding: 6px 12px; font-weight: bold;"
+        )
+        for name, btn in self._speed_buttons.items():
+            btn.setStyleSheet(active_style if name == preset else "")

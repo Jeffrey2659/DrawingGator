@@ -1,0 +1,7 @@
+2-12
+12:00-4:00pm
+6:00-10:00pm
+total: 8.0 hours
+
+
+parts for perfboard came in. Soldered most of it. I had to take a lot of time putting wires between each of the pads that carry considerable current.

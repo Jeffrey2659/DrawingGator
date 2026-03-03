@@ -51,7 +51,8 @@ class VpypeRunner(QObject):
     
    
 
-    def run_svg_to_gcode(self, svg_path: str, out_path: str | None = None):
+    def run_svg_to_gcode(self, svg_path: str, out_path: str | None = None,
+                         profile: str = "grbl_normal"):
         svg = Path(svg_path)
         if not svg.exists():
             self.finished.emit(False, "", f"SVG not found: {svg_path}")
@@ -74,12 +75,12 @@ class VpypeRunner(QObject):
             print(f"Config contents:\n{cfg_path.read_text()}") 
         program = "vpype"
         args = [
-            "--config", cfg_path.as_posix(),         # <-- ensure string
-            "read", svg.as_posix(), 
+            "--config", cfg_path.as_posix(),
+            "read", svg.as_posix(),
             "scaleto", "6in", "10in",
-            "layout", "8inx12in",                  
+            "layout", "8inx12in",
             "linemerge", "linesimplify", "reloop", "linesort",
-            "gwrite",                                 # <-- no -p; uses [gwrite].default_profile
+            "gwrite", "-p", profile,
             Path(out_path).as_posix(),
         ]
 
