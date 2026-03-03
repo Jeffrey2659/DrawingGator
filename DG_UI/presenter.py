@@ -104,6 +104,7 @@ class Presenter:
         self._state_block_active = False
         self._state_lines: list[str] = []
         self._rx_buffer = ""
+        self._speed_profile = "grbl_normal"
 
 
         # This checks if the view has an attribute 'on_upload_svg' and if so, assigns the presenter's 'handle_upload_svg' method to it.
@@ -131,7 +132,6 @@ class Presenter:
         self.v.on_manual_send = self.handle_manual_send
         
         # View -> Presenter
-        self.v.on_refresh_clicked = self.handle_refresh
         self.v.on_connect_clicked = self.handle_connect_toggle
         self.v.on_upload_clicked  = self.handle_upload
         self.v.on_send_clicked    = self.handle_send
@@ -139,32 +139,42 @@ class Presenter:
             self.v.on_pause_clicked = self.handle_pause
         if hasattr(self.v, "on_resume_clicked"):
             self.v.on_resume_clicked = self.handle_resume
+        if hasattr(self.v, "on_speed_preset"):
+            self.v.on_speed_preset = self.handle_speed_preset
 
     def start(self):
-        self.handle_refresh()
-        self.v.log("Ready. Upload G-code, choose a port, Connect, then Send.")
+        self.v.log("Ready. Upload G-code, click 'Connect to Arduino', then Send.")
 
     # ---- View handlers ----
     def handle_refresh(self):
-        ports = [lbl for (lbl, _) in self.s.available_ports()]
-        self.v.set_ports(ports)
-        if not ports:
-            self.v.log("No serial ports found. Plug in your board and click Refresh.")
+        pass  # no longer needed — port selection is automatic
 
     def handle_connect_toggle(self):
         if self.s.is_open():
             self.s.close()
             return
-        port_label = self.v.current_port().strip()
-        if not port_label:
-            self.v.warn("Select a port first.")
+
+        ports = self.s.available_ports()  # list of (label, device_path)
+        if not ports:
+            self.v.warn("No serial ports found. Plug in your Arduino and try again.")
             return
-        port_path = port_label.split()[0]  # "/dev/ttyACM0" or "COM3"
-        baud = self.v.current_baud()
-        if baud == 1115200:  # typo guard
-            baud = 115200
-        if not self.s.open(port_path, baud):
-            self.v.warn("Failed to open port.")
+
+        # Prefer a port whose description contains an Arduino-related keyword
+        _ARDUINO_KEYWORDS = ["arduino", "ch340", "ch341", "usb serial", "usb-serial", "ftdi"]
+        arduino_port = None
+        for label, device in ports:
+            if any(kw in label.lower() for kw in _ARDUINO_KEYWORDS):
+                arduino_port = device
+                self.v.log(f"Detected Arduino on {label}")
+                break
+
+        # Fall back to the first available port
+        if arduino_port is None:
+            arduino_port = ports[0][1]
+            self.v.log(f"No Arduino-specific port found — trying first available: {ports[0][0]}")
+
+        if not self.s.open(arduino_port, 9600):
+            self.v.warn("Failed to connect to Arduino.")
 
     def handle_upload(self):
         #ask_open_file is a function of the view that opens a file dialog and returns the selected file path or None
@@ -379,7 +389,29 @@ class Presenter:
         self.v.log("Starting vpype conversion to G-code…")
         out_path = str(Path(svg_path).with_suffix(".gcode"))
         self.v.log(f"G-code will be saved to: {Path(out_path).resolve()}")
-        self._vp.run_svg_to_gcode(svg_path, out_path=out_path)
+        self._vp.run_svg_to_gcode(svg_path, out_path=out_path, profile=self._speed_profile)
+    def handle_speed_preset(self, preset: str):
+        profile_map = {
+            "slow":   "grbl_slow",
+            "normal": "grbl_normal",
+            "fast":   "grbl_fast",
+        }
+        self._speed_profile = profile_map.get(preset, "grbl_normal")
+        self.v.log(f"Speed preset: {preset} → profile '{self._speed_profile}'")
+
+    def handle_draw_text(self, text: str, font: str, size: float, mirror: bool = False):
+        self.v.log(f"Drawing text: \"{text}\" (font={font}, size={size}, mirror={mirror})")
+        self._vp.run_text_to_svg(text, font, size, mirror=mirror)
+
+    def _on_text_svg_finished(self, ok: bool, svg_path: str, log_text: str):
+        if log_text:
+            self.v.log(log_text)
+        if not ok:
+            self.v.warn("Text-to-SVG conversion failed.")
+            return
+        self.v.log(f"Text SVG created: {svg_path}")
+        self.handle_upload_svg(svg_path)
+
     def _on_vpype_finished(self, ok: bool, gcode_path: str, log_text: str):
         if log_text:
             self.v.log(log_text + ("\n" if not log_text.endswith("\n") else ""))
@@ -431,4 +463,4 @@ class Presenter:
         self.v.log(f"SVG created: {svg_path}")
         # 2) SVG → G-code via vpype
         gcode_out = str(Path(svg_path).with_suffix(".gcode"))
-        self._vp.run_svg_to_gcode(svg_path, gcode_out)
+        self._vp.run_svg_to_gcode(svg_path, gcode_out, profile=self._speed_profile)
