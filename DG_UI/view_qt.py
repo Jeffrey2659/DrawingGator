@@ -2,12 +2,16 @@
 from typing import Optional
 from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QProgressBar, QDockWidget, QWidget, QHBoxLayout, QLineEdit, QPushButton, QLabel
 from PyQt6.QtGui import QAction
+from typing import Optional, List
+from PyQt6.QtWidgets import QCheckBox, QMainWindow, QFileDialog, QMessageBox, QProgressBar, QDockWidget, QWidget, QHBoxLayout, QLineEdit, QPushButton
+from PyQt6.QtGui import QBrush, QColor, QFont, QPaintEvent, QPainter, QPen
 from DG_UI import Ui_MainWindow
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QPoint, QPointF, QRectF, QSize, Qt
 from matplotlib_widget import MatplotlibWidget
 from color_widget import ColorWidget
 from text_dialog import TextDrawDialog
 from pathlib import Path
+from PyQt6.QtCore import Qt, QPointF, QRectF, QSize, QPoint, pyqtSlot as Slot, pyqtProperty as Property
 
 class ViewQt(QMainWindow, Ui_MainWindow):
     # Presenter assigns these callables at runtime:
@@ -26,6 +30,10 @@ class ViewQt(QMainWindow, Ui_MainWindow):
     on_show_svg_preview = None
     on_speed_preset = None
 
+
+    on_color_clicked = None
+    on_grayscale_clicked = None
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
@@ -263,6 +271,15 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self._progress.setTextVisible(True)
         self.statusbar.addPermanentWidget(self._progress, 1)
 
+        # toggle 
+        self.toggle_switch = ColorSwitch(
+            checked_color="#00B0FF",
+            h_scale=1.2,
+            v_scale=1.2,
+        )
+        self.statusbar.addWidget(self.toggle_switch)
+        self.toggle_switch.toggled.connect(self._on_color_clicked)
+
         # manual send
 
         self.on_manual_send = None
@@ -292,9 +309,17 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         # self.pauseBtn.clicked.connect(lambda: self.on_pause_clicked and self.on_pause_clicked())
         # self.resumeBtn.clicked.connect(lambda: self.on_resume_clicked and self.on_resume_clicked())
         #self.actionUpload_Image.triggered.connect(self._ask_open_image)    # Presenter -> View API
-
+        self.colorButton.hide()
         self.create_show_svg_preview()
+        
 
+    def _on_color_clicked(self, checked: bool):
+            if checked:
+                if self.on_color_clicked:
+                    self.on_color_clicked()
+            else:
+                if self.on_grayscale_clicked:
+                    self.on_grayscale_clicked()
 
     def set_connected(self, connected: bool, desc: str = "") -> None:
         self.connect.setText("Disconnect" if connected else "Connect to Arduino")
@@ -397,3 +422,113 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         )
         for name, btn in self._speed_buttons.items():
             btn.setStyleSheet(active_style if name == preset else "")
+# class for color switch
+# References: https://github.com/pythonguis/python-qtwidgets/tree/master/qtwidgets/toggle
+# https://stackoverflow.com/questions/62363953/how-to-create-toggle-switch-button-in-qt-designer
+class ColorSwitch(QCheckBox):
+    _transparent_pen = QPen(Qt.GlobalColor.transparent)
+    _light_grey_pen = QPen(Qt.GlobalColor.lightGray)
+    _black_pen = QPen(Qt.GlobalColor.black)
+
+    def __init__(self,
+                parent = None,
+                bar_color = Qt.GlobalColor.gray,
+                checked_color = "#00B0FF",
+                handle_color=Qt.GlobalColor.white, 
+                h_scale=1.0,
+                v_scale=1.0,
+                fontSize=10):
+        super().__init__(parent)
+        self._bar_brush = QBrush(bar_color)
+        self._bar_checked_brush = QBrush(QColor(checked_color).lighter())   
+        self._handle_brush = QBrush(handle_color)
+        self._handle_checked_brush = QBrush(QColor(checked_color))
+
+        self.setContentsMargins(8, 0, 8, 0)
+        self._handle_position = 0
+        self._h_scale = h_scale
+        self._v_scale = v_scale
+        self._font_size = fontSize
+
+        self.stateChanged.connect(self.handle_state_change)
+
+    def sizeHint(self):
+        return QSize(58, 45)
+        
+    def hitButton(self, pos: QPoint):
+        return self.contentsRect().contains(pos)
+        
+    def paintEvent(self, e: QPaintEvent):
+        contRect = self.contentsRect()
+        width =  contRect.width() * self._h_scale
+        height = contRect.height() * self._v_scale
+        handleRadius = round(0.24 * height)
+
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        p.setPen(self._transparent_pen)
+        barRect = QRectF(0, 0, width - handleRadius, 0.40 * height)
+        barRect.moveCenter(QPointF(contRect.center()))
+        rounding = barRect.height() / 2
+
+        # the handle will move along this line
+        trailLength = contRect.width()*self._h_scale - 2 * handleRadius
+        xLeft = contRect.center().x() - (trailLength + handleRadius)/2 
+        xPos = xLeft + handleRadius + trailLength * self._handle_position
+
+        if self.isChecked():
+            p.setBrush(self._bar_checked_brush)
+            p.drawRoundedRect(barRect, rounding, rounding)
+            p.setBrush(self._handle_checked_brush)
+
+            p.setPen(self._black_pen)
+            p.setFont(QFont('Helvetica', self._font_size, 75))
+            p.drawText(
+                int(xLeft + handleRadius / 2),
+                int(contRect.center().y() + handleRadius / 2),
+                "COL",
+            )
+
+        else:
+            p.setBrush(self._bar_brush)
+            p.drawRoundedRect(barRect, rounding, rounding)
+            p.setPen(self._light_grey_pen)
+            p.setBrush(self._handle_brush)
+
+        p.setPen(self._light_grey_pen)
+        p.drawEllipse(
+            QPointF(xPos, barRect.center().y()),
+            handleRadius, handleRadius)
+
+        p.end()
+
+    @Slot(int)
+    def handle_state_change(self, value):
+        self._handle_position = 1 if value else 0
+        
+    @Property(float)
+    def handle_position(self):
+        return self._handle_position
+        
+    @handle_position.setter
+    def handle_position(self, pos):
+        """change the property
+        we need to trigger QWidget.update() method, either by:
+        1- calling it here [ what we're doing ].
+        2- connecting the QPropertyAnimation.valueChanged() signal to it.
+        """
+        self._handle_position = pos
+        self.update()
+
+    def setH_scale(self,value):
+        self._h_scale = value
+        self.update()
+
+    def setV_scale(self,value):
+        self._v_scale = value
+        self.update()
+
+    def setFontSize(self,value):
+        self._fontSize = value
+        self.update()
