@@ -1,4 +1,7 @@
 # view_qt.py
+from typing import Optional
+from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QProgressBar, QDockWidget, QWidget, QHBoxLayout, QLineEdit, QPushButton, QLabel
+from PyQt6.QtGui import QAction
 from typing import Optional, List
 from PyQt6.QtWidgets import QCheckBox, QMainWindow, QFileDialog, QMessageBox, QProgressBar, QDockWidget, QWidget, QHBoxLayout, QLineEdit, QPushButton
 from PyQt6.QtGui import QBrush, QColor, QFont, QPaintEvent, QPainter, QPen
@@ -6,6 +9,7 @@ from DG_UI import Ui_MainWindow
 from PyQt6.QtCore import QPoint, QPointF, QRectF, QSize, Qt
 from matplotlib_widget import MatplotlibWidget
 from color_widget import ColorWidget
+from text_dialog import TextDrawDialog
 from pathlib import Path
 from PyQt6.QtCore import Qt, QPointF, QRectF, QSize, QPoint, pyqtSlot as Slot, pyqtProperty as Property
 
@@ -20,9 +24,12 @@ class ViewQt(QMainWindow, Ui_MainWindow):
     on_resume_clicked = None
     on_upload_svg = None
     on_upload_image = None
+    on_draw_text = None
 
     # Add additional line for svg preview revert
     on_show_svg_preview = None
+    on_speed_preset = None
+
 
     on_color_clicked = None
     on_grayscale_clicked = None
@@ -225,6 +232,37 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         dock.setWidget(w)
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
 
+        # Speed preset buttons
+        speed_container = QWidget(self.centralwidget)
+        speed_layout = QHBoxLayout(speed_container)
+        speed_layout.setContentsMargins(8, 4, 8, 4)
+        speed_layout.addWidget(QLabel("Draw Speed:"))
+
+        self._btn_slow   = QPushButton("Slow\n(50 q-in/min)",   speed_container)
+        self._btn_normal = QPushButton("Normal\n(100 q-in/min)", speed_container)
+        self._btn_fast   = QPushButton("Fast\n(200 q-in/min)",  speed_container)
+
+        for btn in (self._btn_slow, self._btn_normal, self._btn_fast):
+            speed_layout.addWidget(btn)
+
+        self._speed_buttons = {
+            "slow":   self._btn_slow,
+            "normal": self._btn_normal,
+            "fast":   self._btn_fast,
+        }
+
+        # Insert before plainTextEdit in the central layout
+        idx = self.verticalLayout_2.indexOf(self.plainTextEdit)
+        self.verticalLayout_2.insertWidget(idx, speed_container)
+
+        # Wire up clicks
+        self._btn_slow.clicked.connect(lambda: self._on_speed_btn("slow"))
+        self._btn_normal.clicked.connect(lambda: self._on_speed_btn("normal"))
+        self._btn_fast.clicked.connect(lambda: self._on_speed_btn("fast"))
+
+        # Highlight normal as the default
+        self._highlight_speed_btn("normal")
+
         # Status progress bar (no .ui changes needed)
         self._progress = QProgressBar(self)
         self._progress.setMinimum(0)
@@ -248,7 +286,6 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         # UI -> Presenter callbacks
         #if no lambda then it calls the function immediately instead of waiting for the button to be clicked
         #the lambda creates an anonymous function that calls the function when the button is clicked
-        self.refresh.clicked.connect( lambda: self.on_refresh_clicked and self.on_refresh_clicked())
         self.connect.clicked.connect(lambda: self.on_connect_clicked and self.on_connect_clicked())
         self.sendGcode.clicked.connect(lambda: self.on_send_clicked and self.on_send_clicked())
         self.actionUpload_Gcode.triggered.connect(lambda: self.on_upload_clicked and self.on_upload_clicked())
@@ -263,6 +300,11 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         #svg upload
         #this is mapped to the uploadImage button rn, I might add a separate button later
         self.actionUpload_Image.triggered.connect(self._ask_open_svg)
+
+        # Draw Text menu action
+        self.actionDraw_Text = QAction("Draw Text", self)
+        self.menuMenu.addAction(self.actionDraw_Text)
+        self.actionDraw_Text.triggered.connect(self._ask_draw_text)
         # If you add Pause/Resume buttons in .ui (names: pauseBtn/resumeBtn), hook them:
         # self.pauseBtn.clicked.connect(lambda: self.on_pause_clicked and self.on_pause_clicked())
         # self.resumeBtn.clicked.connect(lambda: self.on_resume_clicked and self.on_resume_clicked())
@@ -279,13 +321,8 @@ class ViewQt(QMainWindow, Ui_MainWindow):
                 if self.on_grayscale_clicked:
                     self.on_grayscale_clicked()
 
-    def set_ports(self, ports: List[str]) -> None:
-        self.portOpt.clear()
-        for p in ports:
-            self.portOpt.addItem(p)
-
     def set_connected(self, connected: bool, desc: str = "") -> None:
-        self.connect.setText("Disconnect" if connected else "Connect")
+        self.connect.setText("Disconnect" if connected else "Connect to Arduino")
         self.statusbar.showMessage(desc if connected else "Disconnected", 3000)
 
     def set_progress(self, sent: int, total: int) -> None:
@@ -308,16 +345,6 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         )
         return path or None
 
-    def current_port(self) -> str:
-        return self.portOpt.currentText().strip()
-
-    def current_baud(self) -> int:
-        txt = self.baudOpt.currentText().strip()
-        try:
-            return int(txt)
-        except ValueError:
-            return 115200
-        
     def _send_manual_from_line(self):
         txt = self.manualLine.text().strip()
         if txt and self.on_manual_send:
@@ -348,6 +375,13 @@ class ViewQt(QMainWindow, Ui_MainWindow):
             self.on_upload_svg(path)
 
 
+    def _ask_draw_text(self):
+        dlg = TextDrawDialog(self)
+        if dlg.exec() == TextDrawDialog.DialogCode.Accepted:
+            text = dlg.get_text()
+            if text.strip() and self.on_draw_text:
+                self.on_draw_text(text, dlg.get_font(), dlg.get_size(), dlg.get_mirror())
+
     def open_color_window(self):
         self.color_window = ColorWidget(self)
         # call the function to display the color on the image
@@ -375,6 +409,19 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self.preview_dock.raise_()
         self.preview_dock.activateWindow()
 
+    def _on_speed_btn(self, preset: str):
+        self._highlight_speed_btn(preset)
+        if self.on_speed_preset:
+            self.on_speed_preset(preset)
+
+    def _highlight_speed_btn(self, preset: str):
+        active_style = (
+            "background-color: #a8d5ba; color: #2d5a3d;"
+            "border: 2px solid #2d5a3d; border-radius: 4px;"
+            "padding: 6px 12px; font-weight: bold;"
+        )
+        for name, btn in self._speed_buttons.items():
+            btn.setStyleSheet(active_style if name == preset else "")
 # class for color switch
 # References: https://github.com/pythonguis/python-qtwidgets/tree/master/qtwidgets/toggle
 # https://stackoverflow.com/questions/62363953/how-to-create-toggle-switch-button-in-qt-designer

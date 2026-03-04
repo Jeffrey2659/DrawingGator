@@ -32,9 +32,13 @@ total: 8.0 hours
 4:00-8:00pm
 total: 4.0 hours
 
-2/26
+2/18
 3:00-6:00pm
 9:00pm-11:00pm
 total: 5.0 hours
 
-total hours (4 weeks): 41.4
+2/21
+5:00-9:30pm
+totaL: 4.5 hours.
+
+total hours (4 weeks): 45.9

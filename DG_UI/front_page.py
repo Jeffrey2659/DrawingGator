@@ -98,20 +98,18 @@ class FrontPage(QMainWindow):
         layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addStretch()
         central.setLayout(layout)
-        self.show()
 
     def gator_click(self):
-        # added code from app.py to connect the two
         self.view = ViewQt()
-        serial = SerialService()
-        model = GCodeModel()
-        presenter = Presenter(self.view, serial, model)
-        presenter.start()
+        self._serial = SerialService()
+        self._model = GCodeModel()
+        self._presenter = Presenter(self.view, self._serial, self._model)
+        self._presenter.start()
         self.view.show()
         self.close()
-        print("button clicked")
 
 if __name__ == '__main__':
    app = QApplication(sys.argv)
    window = FrontPage()
+   window.show()
    sys.exit(app.exec())

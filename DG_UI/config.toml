@@ -1,5 +1,5 @@
 [gwrite]
-default_profile = "grbl"
+default_profile = "grbl_normal"
 
 [gwrite.grbl]
 unit = "inch"
@@ -13,5 +13,44 @@ segment_first = "M3 S70\nG00 X{x:.4f} Y{y:.4f}\nM3 S250\n"
 segment = "G01 X{x:.4f} Y{y:.4f}\n"
 
 layer_end = ""
-document_end = "M3 S70\nM5\nM2\n"
+document_end = "M3 S70\nG00 X0 Y0\nM2\n"
 info = "GRBL profile without feed rate"
+
+# --- Speed presets ---
+# Speeds are in inches/min (unit = "inch").
+# 1 quarter-inch/min = 0.25 in/min, so:
+#   Slow   =  50 quarter-in/min =  12.5 in/min
+#   Normal = 100 quarter-in/min =  25.0 in/min
+#   Fast   = 200 quarter-in/min =  50.0 in/min
+# G01 F<value> is issued once at the start of each stroke; subsequent
+# G01 moves inherit the feed rate modally (GRBL behaviour).
+
+[gwrite.grbl_slow]
+unit = "inch"
+document_start = "G20\nG90\nG92 X0 Y0 I1 J5\nM3 S70\n"
+layer_start = ""
+segment_first = "M3 S70\nG00 X{x:.4f} Y{y:.4f}\nM3 S250\nG01 F12.5\n"
+segment = "G01 X{x:.4f} Y{y:.4f}\n"
+layer_end = ""
+document_end = "M3 S70\nG00 X0 Y0\nM2\n"
+info = "GRBL slow speed: 50 quarter-in/min (F12.5)"
+
+[gwrite.grbl_normal]
+unit = "inch"
+document_start = "G20\nG90\nG92 X0 Y0 I1 J5\nM3 S70\n"
+layer_start = ""
+segment_first = "M3 S70\nG00 X{x:.4f} Y{y:.4f}\nM3 S250\nG01 F25\n"
+segment = "G01 X{x:.4f} Y{y:.4f}\n"
+layer_end = ""
+document_end = "M3 S70\nG00 X0 Y0\nM2\n"
+info = "GRBL normal speed: 100 quarter-in/min (F25)"
+
+[gwrite.grbl_fast]
+unit = "inch"
+document_start = "G20\nG90\nG92 X0 Y0 I1 J5\nM3 S70\n"
+layer_start = ""
+segment_first = "M3 S70\nG00 X{x:.4f} Y{y:.4f}\nM3 S250\nG01 F50\n"
+segment = "G01 X{x:.4f} Y{y:.4f}\n"
+layer_end = ""
+document_end = "M3 S70\nG00 X0 Y0\nM2\n"
+info = "GRBL fast speed: 200 quarter-in/min (F50)"
