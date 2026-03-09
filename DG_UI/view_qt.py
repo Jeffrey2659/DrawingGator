@@ -1,6 +1,6 @@
 # view_qt.py
 from typing import Optional
-from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QProgressBar, QDockWidget, QWidget, QHBoxLayout, QLineEdit, QPushButton, QLabel
+from PyQt6.QtWidgets import QFrame, QMainWindow, QFileDialog, QMessageBox, QProgressBar, QDockWidget, QSizePolicy, QVBoxLayout, QWidget, QHBoxLayout, QLineEdit, QPushButton, QLabel
 from PyQt6.QtGui import QAction
 from typing import Optional, List
 from PyQt6.QtWidgets import QCheckBox, QMainWindow, QFileDialog, QMessageBox, QProgressBar, QDockWidget, QWidget, QHBoxLayout, QLineEdit, QPushButton
@@ -146,7 +146,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
                            
         QMenuBar {
             background-color: #faf5e4;
-            color: #4a4a4a;
+            color: #4a4a4a;;
         }
         
         QMenuBar::item:selected {
@@ -198,52 +198,129 @@ class ViewQt(QMainWindow, Ui_MainWindow):
 
         self.setWindowTitle("Drawing Gator")
 
+        # remove all the old widgets to reorganize them
+        self.verticalLayout_2.removeWidget(self.connect)
+        self.verticalLayout_2.removeWidget(self.sendGcode)
+        self.verticalLayout_2.removeWidget(self.plainTextEdit)
+
+        self.verticalLayout_2.takeAt(0)
+        self.verticalLayout_2.takeAt(0)
+
+##########################################################################
+############ LEFT SIDE ######### RIGHT SIDE ##############################
+############ Connect ########### SVG #####################################
+############ Speed #######################################################
+############ Toggle ######################################################
+
+        # left size
+        left_layout = QHBoxLayout()
+        left_layout.setContentsMargins(8, 8, 8, 8)
+        left_layout.setSpacing(8)
+        self.verticalLayout_2.addLayout(left_layout)   
+
+        left_panel = QFrame(self.centralwidget)
+        left_panel.setFixedWidth(250)
+        left_panel.setStyleSheet("""
+            "QFrame {
+                background-color: #f5deb3;
+                border: 1px solid #d9c5a0;
+                border-radius: 4px;
+            }
+        """)
+        left_side = QVBoxLayout(left_panel)
+        left_side.setContentsMargins(12, 12, 12, 12)
+        left_side.setSpacing(6)
+
+        # adding the svg here
+        self.mpl_widget = MatplotlibWidget()
+        self.mpl_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        left_layout.addWidget(left_panel)
+        left_layout.addWidget(self.mpl_widget, stretch=1)
+
         #manual command dock
-        dock = QDockWidget("Manual Command", self)
-        dock.setObjectName("ManualCommandDock")
-        dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea | Qt.DockWidgetArea.TopDockWidgetArea)
+        # dock = QDockWidget("Manual Command", self)
+        # dock.setObjectName("ManualCommandDock")
+        # dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea | Qt.DockWidgetArea.TopDockWidgetArea)
 
 
         # add the matplotlib widget for svg display
-        self.mpl_widget = MatplotlibWidget()
-        preview_dock = QDockWidget("SVG Preview", self)
-        preview_dock.setObjectName("SVGPreviewDock")
-        preview_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.LeftDockWidgetArea)
-        preview_dock.setWidget(self.mpl_widget)
-        preview_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable | 
-                                  QDockWidget.DockWidgetFeature.DockWidgetFloatable |
-                                  QDockWidget.DockWidgetFeature.DockWidgetClosable)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, preview_dock)
+        # self.mpl_widget = MatplotlibWidget()
+        # preview_dock = QDockWidget()
+        # preview_dock.setObjectName("SVGPreviewDock")
+        # preview_dock.setTitleBarWidget(QWidget())  # Hide the title bar
+        # preview_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.LeftDockWidgetArea)
+        # preview_dock.setWidget(self.mpl_widget)
+        # preview_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable | 
+        #                           QDockWidget.DockWidgetFeature.DockWidgetFloatable 
+        #                           )
+        # self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, preview_dock)
         
         # Set initial size for the dock (optional but helpful)
-        preview_dock.setMinimumWidth(300)
-        w = QWidget(dock)
-        lay = QHBoxLayout(w)
-        lay.setContentsMargins(8, 8, 8, 8)
+        # preview_dock.setMinimumWidth(300)
+        # w = QWidget(dock)
+        # lay = QHBoxLayout(w)
+        # lay.setContentsMargins(8, 8, 8, 8)
 
-        self.manualLine = QLineEdit(w)
-        self.manualLine.setPlaceholderText("Type a G-code, e.g. G0 X10 Y10 (Enter to send)")
-        self.manualSendBtn = QPushButton("Send", w)
+        # self.manualLine = QLineEdit(w)
+        # self.manualLine.setPlaceholderText("Type a G-code, e.g. G0 X10 Y10 (Enter to send)")
+        # self.manualSendBtn = QPushButton("Send", w)
 
-        lay.addWidget(self.manualLine, 1)
-        lay.addWidget(self.manualSendBtn, 0)
+        # lay.addWidget(self.manualLine, 1)
+        # lay.addWidget(self.manualSendBtn, 0)
 
-        w.setLayout(lay)
-        dock.setWidget(w)
-        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
+        # w.setLayout(lay)
+        # dock.setWidget(w)
+        # self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
+
+
+##############################################################################
+################## CONNECTION STATUS #########################################
+        # connection status 
+        # dot is red to begin with
+        self.status_dot = QLabel()
+        self.status_dot.setFixedSize(12, 12)
+        self.status_dot.setStyleSheet("background-color: red; border-radius: 6px;")
+        
+        # put the label
+        self.status_text = QLabel("Disconnected", )
+        self.status_text.setStyleSheet("color: #4a4a4a; font-weight: bold;")
+        
+        status_section = QWidget()
+        status_section.setStyleSheet("background: transparent;")
+        status_layout = QHBoxLayout(status_section)
+        status_layout.setContentsMargins(0, 2, 0, 2)
+        status_layout.setSpacing(6)
+        status_layout.addWidget(self.status_dot)
+        status_layout.addWidget(self.status_text)
+        status_layout.addStretch()
+
+        # connect to functionality of connect
+        self.connect.setMinimumHeight(40)
+        self.connect.setStyleSheet(
+            "background-color: #4a90d9; color: #ffffff; border: none;"
+            "border-radius: 4px; padding: 8px 16px; font-weight: bold;"
+        )
+
+        connection_label = QLabel("Connection Status:")
+        connection_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        connection_label.setStyleSheet("color: #4a4a4a; font-weight: bold;")
+        left_side.addWidget(connection_label)
+        left_side.addWidget(status_section)
+        left_side.addWidget(self.connect)
 
         # Speed preset buttons
-        speed_container = QWidget(self.centralwidget)
-        speed_layout = QHBoxLayout(speed_container)
-        speed_layout.setContentsMargins(8, 4, 8, 4)
-        speed_layout.addWidget(QLabel("Draw Speed:"))
+        # speed_container = QWidget(self.centralwidget)
+        # speed_layout = QHBoxLayout(speed_container)
+        # speed_layout.setContentsMargins(8, 4, 8, 4)
+        # speed_layout.addWidget(QLabel("Draw Speed:"))
 
-        self._btn_slow   = QPushButton("Slow\n(50 q-in/min)",   speed_container)
-        self._btn_normal = QPushButton("Normal\n(100 q-in/min)", speed_container)
-        self._btn_fast   = QPushButton("Fast\n(200 q-in/min)",  speed_container)
+        self._btn_slow   = QPushButton("Slow\n(50 q-in/min)")
+        self._btn_normal = QPushButton("Normal\n(100 q-in/min)")
+        self._btn_fast   = QPushButton("Fast\n(200 q-in/min)")
 
-        for btn in (self._btn_slow, self._btn_normal, self._btn_fast):
-            speed_layout.addWidget(btn)
+        # for btn in (self._btn_slow, self._btn_normal, self._btn_fast):
+        #     speed_layout.addWidget(btn)
 
         self._speed_buttons = {
             "slow":   self._btn_slow,
@@ -252,8 +329,8 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         }
 
         # Insert before plainTextEdit in the central layout
-        idx = self.verticalLayout_2.indexOf(self.plainTextEdit)
-        self.verticalLayout_2.insertWidget(idx, speed_container)
+        #idx = self.verticalLayout_2.indexOf(self.plainTextEdit)
+        #self.verticalLayout_2.insertWidget(idx, speed_container)
 
         # Wire up clicks
         self._btn_slow.clicked.connect(lambda: self._on_speed_btn("slow"))
@@ -263,6 +340,14 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         # Highlight normal as the default
         self._highlight_speed_btn("normal")
 
+        speed_label = QLabel("Speed Controls:")
+        speed_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        speed_label.setStyleSheet("color: #4a4a4a; font-weight: bold;")
+        left_side.addWidget(speed_label)
+        left_side.addWidget(self._btn_slow)
+        left_side.addWidget(self._btn_normal)
+        left_side.addWidget(self._btn_fast)
+
         # Status progress bar (no .ui changes needed)
         self._progress = QProgressBar(self)
         self._progress.setMinimum(0)
@@ -271,13 +356,32 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self._progress.setTextVisible(True)
         self.statusbar.addPermanentWidget(self._progress, 1)
 
+        gcode_label = QLabel("Send GCode:")
+        gcode_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        gcode_label.setStyleSheet("color: #4a4a4a; font-weight: bold;")
+        left_side.addWidget(gcode_label)
+        left_side.addWidget(self.sendGcode)
+
         # toggle 
         self.toggle_switch = ColorSwitch(
             checked_color="#00B0FF",
-            h_scale=1.2,
-            v_scale=1.2,
+            h_scale = 1.5,
+            v_scale = 1.5,
         )
-        self.statusbar.addWidget(self.toggle_switch)
+        color_label = QLabel("Change to color/grayscale:")
+        color_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        color_label.setStyleSheet("color: #4a4a4a; font-weight: bold;")
+        left_side.addWidget(color_label)
+        left_side.addWidget(self.toggle_switch, alignment=Qt.AlignmentFlag.AlignCenter)
+    
+        # add the progress below the toggle
+        status_label = QLabel("Progress Bar:")
+        status_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        status_label.setStyleSheet("color: #4a4a4a; font-weight: bold;")
+        left_side.addWidget(status_label)
+        left_side.addWidget(self._progress)
+
+        #self.statusbar.addWidget(self.toggle_switch)
         self.toggle_switch.toggled.connect(self._on_color_clicked)
 
         # manual send
@@ -293,8 +397,8 @@ class ViewQt(QMainWindow, Ui_MainWindow):
 
 
         # manual present callbacks
-        self.manualLine.returnPressed.connect(self._send_manual_from_line)
-        self.manualSendBtn.clicked.connect(self._send_manual_from_button)
+        # self.manualLine.returnPressed.connect(self._send_manual_from_line)
+        # self.manualSendBtn.clicked.connect(self._send_manual_from_button)
 
 
         #svg upload
@@ -310,7 +414,12 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         # self.resumeBtn.clicked.connect(lambda: self.on_resume_clicked and self.on_resume_clicked())
         #self.actionUpload_Image.triggered.connect(self._ask_open_image)    # Presenter -> View API
         self.colorButton.hide()
-        self.create_show_svg_preview()
+        # remove the text window
+        self.plainTextEdit.hide()
+        # hide the manulal command also
+        #self.manualLine.hide()
+        #self.manualSendBtn.hide()
+        #self.create_show_svg_preview()
         
 
     def _on_color_clicked(self, checked: bool):
@@ -322,7 +431,17 @@ class ViewQt(QMainWindow, Ui_MainWindow):
                     self.on_grayscale_clicked()
 
     def set_connected(self, connected: bool, desc: str = "") -> None:
-        self.connect.setText("Disconnect" if connected else "Connect to Arduino")
+        if connected:
+            self.status_dot.setStyleSheet("background-color: green; border-radius: 6px;")
+            self.status_text.setText("Connected")
+            self.connect.setText("Disconnect")
+        else:
+            self.status_dot.setStyleSheet("background-color: red; border-radius: 6px;")
+            self.status_text.setText("Disconnected")
+            self.connect.setText("Connect to Arduino")
+        
+        
+        #self.connect.setText("Disconnect" if connected else "Connect to Arduino")
         self.statusbar.showMessage(desc if connected else "Disconnected", 3000)
 
     def set_progress(self, sent: int, total: int) -> None:
@@ -453,7 +572,7 @@ class ColorSwitch(QCheckBox):
         self.stateChanged.connect(self.handle_state_change)
 
     def sizeHint(self):
-        return QSize(58, 45)
+        return QSize(40, 20)
         
     def hitButton(self, pos: QPoint):
         return self.contentsRect().contains(pos)
@@ -487,7 +606,7 @@ class ColorSwitch(QCheckBox):
             p.drawText(
                 int(xLeft + handleRadius / 2),
                 int(contRect.center().y() + handleRadius / 2),
-                "COL",
+                "COLORED",
             )
 
         else:
