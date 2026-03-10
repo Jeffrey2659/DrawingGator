@@ -3,7 +3,7 @@
 
 #include <Printable.h>
 
-enum Algorithm { RAPID_LINE, SPLIT_LINE, CLW_ROTATE, CCW_ROTATE };
+enum Algorithm { RAPID_LINE, SPLIT_LINE, CLW_ROTATE, CCW_ROTATE, DIRECT_MOVE };
 
 struct Vector2d : public Printable {
   double X;
@@ -70,18 +70,18 @@ struct LegData : public Printable {
     valid = false;
     speed = 120; // 1/2" per second
   }
-  LegData(double sx, double sy, double gx, double gy, Algorithm alg, unsigned int move_speed) {
-    start = Vector2d(sx, sy);
-    goal = Vector2d(gx, gy);
+  LegData(Vector2d _start, Vector2d _goal, Algorithm alg, unsigned int move_speed) {
+    start = _start;
+    goal = _goal;
     center = Vector2d(0, 0);
     algo = alg;
     valid = true;
     speed = move_speed;
   }
-  LegData(double sx, double sy, double gx, double gy, double cx, double cy, Algorithm alg, unsigned int move_speed) {
-    start = Vector2d(sx, sy);
-    goal = Vector2d(gx, gy);
-    center = Vector2d(cx, cy);
+  LegData(Vector2d _start, Vector2d _goal, Vector2d _center, Algorithm alg, unsigned int move_speed) {
+    start = _start;
+    goal = _goal;
+    center = _center;
     algo = alg;
     valid = true;
     speed = move_speed;

@@ -46,6 +46,7 @@ void loop() {
     sh.curLeg = LegData();
     sh.nextLeg = LegData();
     sh.setPWM(0); // Reset servo 
+    sh.trySetSpeed(100); // Reset speed
 
     sh.moveState = StateHolder::IDLE; // move along
     return;
