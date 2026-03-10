@@ -52,27 +52,27 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self.setStyleSheet("""
         /* Main Window Background */
         QMainWindow {
-            background-color: #faf5e4;
+            background-color: #f0f4f8;
         }
         
         /* Central Widget */
         QWidget {
-            background-color: #faf5e4;
+            background-color: #f0f4f8;
             color: #4a4a4a;
         }
         
         QPushButton {
-            background-color: #f5deb3;
-            color: #5a5a5a;
-            border: 1px solid #d9c5a0;
+            background-color: #708090;
+            color: #ffffff;
+            border: none;
             border-radius: 4px;
             padding: 6px 12px;
             font-weight: bold;
         }
         
         QPushButton:hover {
-            background-color: #f0d19e;
-            border: 1px solid #c9b590;
+            background-color: #a8d5ba;
+            border: none;
         }
         
         QPushButton:pressed {
@@ -145,43 +145,38 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         }
                            
         QMenuBar {
-            background-color: #faf5e4;
-            color: #4a4a4a;;
+            background-color: #dde3ea;
+            color: #2c3e50;
         }
-        
+
         QMenuBar::item:selected {
-            background-color: #f5deb3;
+            background-color: #c5cdd6;
         }
-        
+
         QMenu {
-            background-color: #faf5e4;
-            color: #4a4a4a;
+            background-color: #dde3ea;
+            color: #2c3e50;
         }
-        
+
         QMenu::item:selected {
-            background-color: #f5deb3;
-        }
-        
-        QStatusBar {
-            background-color: #faf5e4;
-            color: #4a4a4a;
+            background-color: #c5cdd6;
         }
         
         QProgressBar {
             background-color: #ffffff;
-            color: #4a4a4a;
-            border: 1px solid #d9c5a0;
+            color: #536878;
+            border: 1px solid #d3d3d3;
             border-radius: 4px;
             text-align: center;
         }
         
         QProgressBar::chunk {
-            background-color: #f5deb3;
+            background-color: #c0c0c0;
             border-radius: 3px;
         }
         
         QDockWidget {
-            color: #4a4a4a;
+            color: #c0c0c0;
         }
         
         QDockWidget::title {
@@ -221,10 +216,9 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         left_panel = QFrame(self.centralwidget)
         left_panel.setFixedWidth(250)
         left_panel.setStyleSheet("""
-            "QFrame {
-                background-color: #f5deb3;
-                border: 1px solid #d9c5a0;
-                border-radius: 4px;
+            QFrame {
+                background-color: #fefefa;
+                border-radius: 10px;
             }
         """)
         left_side = QVBoxLayout(left_panel)
@@ -235,8 +229,21 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self.mpl_widget = MatplotlibWidget()
         self.mpl_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
+        # right panel
+        right_panel = QFrame(self.centralwidget)
+        right_panel.setStyleSheet("""
+            QFrame {
+                background-color: #ffffff;
+                border-radius: 10px;
+                border: 1px solid #d9d9d9;
+            }
+        """)
+        right_layout = QVBoxLayout(right_panel)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.addWidget(self.mpl_widget)
+
         left_layout.addWidget(left_panel)
-        left_layout.addWidget(self.mpl_widget, stretch=1)
+        left_layout.addWidget(right_panel, stretch=1)
 
         #manual command dock
         # dock = QDockWidget("Manual Command", self)
@@ -296,18 +303,17 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         status_layout.addStretch()
 
         # connect to functionality of connect
-        self.connect.setMinimumHeight(40)
         self.connect.setStyleSheet(
-            "background-color: #4a90d9; color: #ffffff; border: none;"
+            "background-color: #a8d5ba; color: #ffffff; border: none;"
             "border-radius: 4px; padding: 8px 16px; font-weight: bold;"
         )
 
         connection_label = QLabel("Connection Status:")
         connection_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        connection_label.setStyleSheet("color: #4a4a4a; font-weight: bold;")
+        connection_label.setStyleSheet("color: #4a4a4a; font-weight: bold; font-size: 15px; border-bottom: 1px solid #d9c5a0; padding-bottom: 4px; border-radius: 0px;")
         left_side.addWidget(connection_label)
         left_side.addWidget(status_section)
-        left_side.addWidget(self.connect)
+        left_side.addWidget(self.connect, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Speed preset buttons
         # speed_container = QWidget(self.centralwidget)
@@ -318,6 +324,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self._btn_slow   = QPushButton("Slow\n(50 q-in/min)")
         self._btn_normal = QPushButton("Normal\n(100 q-in/min)")
         self._btn_fast   = QPushButton("Fast\n(200 q-in/min)")
+
 
         # for btn in (self._btn_slow, self._btn_normal, self._btn_fast):
         #     speed_layout.addWidget(btn)
@@ -342,43 +349,59 @@ class ViewQt(QMainWindow, Ui_MainWindow):
 
         speed_label = QLabel("Speed Controls:")
         speed_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        speed_label.setStyleSheet("color: #4a4a4a; font-weight: bold;")
+        speed_label.setStyleSheet("color: #4a4a4a; font-weight: bold; font-size: 15px; border-bottom: 1px solid #d9c5a0; padding-bottom: 4px; border-radius: 0px;")
         left_side.addWidget(speed_label)
-        left_side.addWidget(self._btn_slow)
-        left_side.addWidget(self._btn_normal)
-        left_side.addWidget(self._btn_fast)
+        left_side.addWidget(self._btn_slow, alignment=Qt.AlignmentFlag.AlignCenter)
+        left_side.addWidget(self._btn_normal, alignment=Qt.AlignmentFlag.AlignCenter)
+        left_side.addWidget(self._btn_fast, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Status progress bar (no .ui changes needed)
         self._progress = QProgressBar(self)
         self._progress.setMinimum(0)
-        self._progress.setMaximum(1)
+        self._progress.setMaximum(0)
         self._progress.setValue(0)
+        self._progress.setFormat("0/0")
         self._progress.setTextVisible(True)
         self.statusbar.addPermanentWidget(self._progress, 1)
 
         gcode_label = QLabel("Send GCode:")
         gcode_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        gcode_label.setStyleSheet("color: #4a4a4a; font-weight: bold;")
+        gcode_label.setStyleSheet("color: #4a4a4a; font-weight: bold; font-size: 15px; border-bottom: 1px solid #d9c5a0; padding-bottom: 4px; border-radius: 0px;")
         left_side.addWidget(gcode_label)
-        left_side.addWidget(self.sendGcode)
+        left_side.addWidget(self.sendGcode, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # toggle 
         self.toggle_switch = ColorSwitch(
-            checked_color="#00B0FF",
+            checked_color="#708090",
             h_scale = 1.5,
             v_scale = 1.5,
         )
         color_label = QLabel("Change to color/grayscale:")
         color_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        color_label.setStyleSheet("color: #4a4a4a; font-weight: bold;")
+        color_label.setStyleSheet("color: #4a4a4a; font-weight: bold; font-size: 15px; border-bottom: 1px solid #d9c5a0; padding-bottom: 4px; border-radius: 0px;")
         left_side.addWidget(color_label)
         left_side.addWidget(self.toggle_switch, alignment=Qt.AlignmentFlag.AlignCenter)
     
         # add the progress below the toggle
         status_label = QLabel("Progress Bar:")
         status_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        status_label.setStyleSheet("color: #4a4a4a; font-weight: bold;")
+        status_label.setStyleSheet("color: #4a4a4a; font-weight: bold; font-size: 15px; border-bottom: 1px solid #d9c5a0; padding-bottom: 4px; border-radius: 0px;")
+        self.ready_dot = QLabel()
+        self.ready_dot.setFixedSize(12, 12)
+        self.ready_dot.setStyleSheet("background-color: red; border-radius: 6px;")
+        
+        # put the label
+        self.ready_text = QLabel("Not ready", )
+        self.ready_text.setStyleSheet("color: #4a4a4a; font-weight: bold;")
+        ready_section = QWidget()
+        ready_section.setStyleSheet("background: transparent;")
+        status_layout = QHBoxLayout(ready_section)
+        status_layout.setContentsMargins(0, 0, 0, 0)
+        status_layout.setSpacing(6)
+        status_layout.addWidget(self.ready_dot)
+        status_layout.addWidget(self.ready_text)
         left_side.addWidget(status_label)
+        left_side.addWidget(ready_section)
         left_side.addWidget(self._progress)
 
         #self.statusbar.addWidget(self.toggle_switch)
@@ -435,10 +458,18 @@ class ViewQt(QMainWindow, Ui_MainWindow):
             self.status_dot.setStyleSheet("background-color: green; border-radius: 6px;")
             self.status_text.setText("Connected")
             self.connect.setText("Disconnect")
+            self.connect.setStyleSheet(
+                "background-color: #f08080; color: #ffffff; border: none;"
+                "border-radius: 4px; padding: 8px 16px; font-weight: bold;"
+            )
         else:
             self.status_dot.setStyleSheet("background-color: red; border-radius: 6px;")
             self.status_text.setText("Disconnected")
             self.connect.setText("Connect to Arduino")
+            self.connect.setStyleSheet(
+            "background-color: #a8d5ba; color: #ffffff; border: none;"
+            "border-radius: 4px; padding: 8px 16px; font-weight: bold;"
+            )   
         
         
         #self.connect.setText("Disconnect" if connected else "Connect to Arduino")
@@ -449,6 +480,13 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self._progress.setMaximum(total)
         self._progress.setValue(sent)
         self._progress.setFormat(f"{sent}/{total}")
+        is_loaded_job = total > 1
+        if is_loaded_job and sent < total:
+            self.ready_dot.setStyleSheet("background-color: green; border-radius: 6px;")
+            self.ready_text.setText("Ready:")
+        else:
+            self.ready_dot.setStyleSheet("background-color: red; border-radius: 6px;")
+            self.ready_text.setText("Not ready")
 
     def log(self, text: str) -> None:
         self.plainTextEdit.appendPlainText(text)
@@ -602,12 +640,7 @@ class ColorSwitch(QCheckBox):
             p.setBrush(self._handle_checked_brush)
 
             p.setPen(self._black_pen)
-            p.setFont(QFont('Helvetica', self._font_size, 75))
-            p.drawText(
-                int(xLeft + handleRadius / 2),
-                int(contRect.center().y() + handleRadius / 2),
-                "COLORED",
-            )
+
 
         else:
             p.setBrush(self._bar_brush)
