@@ -1,12 +1,14 @@
 # view_qt.py
 from typing import Optional
+from PyQt6 import QtGui
+from PyQt6 import QtCore
 from PyQt6.QtWidgets import QFrame, QMainWindow, QFileDialog, QMessageBox, QProgressBar, QDockWidget, QSizePolicy, QVBoxLayout, QWidget, QHBoxLayout, QLineEdit, QPushButton, QLabel
 from PyQt6.QtGui import QAction
 from typing import Optional, List
 from PyQt6.QtWidgets import QCheckBox, QMainWindow, QFileDialog, QMessageBox, QProgressBar, QDockWidget, QWidget, QHBoxLayout, QLineEdit, QPushButton
 from PyQt6.QtGui import QBrush, QColor, QFont, QPaintEvent, QPainter, QPen
 from DG_UI import Ui_MainWindow
-from PyQt6.QtCore import QPoint, QPointF, QRectF, QSize, Qt
+from PyQt6.QtCore import QPoint, QPointF, QRectF, QSize, Qt, pyqtSignal
 from matplotlib_widget import MatplotlibWidget
 from color_widget import ColorWidget
 from text_dialog import TextDrawDialog
@@ -201,6 +203,59 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self.verticalLayout_2.takeAt(0)
         self.verticalLayout_2.takeAt(0)
 
+#######################################################################
+######## ADDING A WINDOW FOR THE CONNECTION ###########################
+
+        self._conn_window = QWidget(self.centralwidget)
+        # transparent background for the connection window
+        self._conn_window.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        window_layout = QVBoxLayout(self._conn_window)
+        # be centered
+        window_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        conn_title = QFrame(self._conn_window)
+        conn_title.setFixedSize(200, 140)
+        conn_title.setStyleSheet("""
+            QFrame {
+                background-color: #ffffff;
+                border-radius: 10px;
+                border: 1px solid #d9d9d9;
+            }
+        """)
+
+        title_layout = QVBoxLayout(conn_title)
+        title_layout.setContentsMargins(20, 20, 20, 20)
+        title_layout.setSpacing(6)
+        title_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        window_subtitle = QLabel("Connect to your Arduino to get started!")
+        window_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        window_subtitle.setWordWrap(True)
+        window_subtitle.setStyleSheet(
+            "font-size: 14px; color: #4a4a4a;"
+            "background-color: transparent; border: none;"
+        )
+
+        window_button = QPushButton("Connect to Arduino")
+        window_button.setFixedHeight(30)
+        window_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        window_button.setStyleSheet("""
+            QPushButton {
+                background-color: #a8d5ba;
+                color: #ffffff;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-weight: bold;
+            }
+            
+            QPushButton:hover {
+                background-color: #a8d5d1;
+                border: none;
+            }
+        """)
+        window_button.clicked.connect(lambda: self.on_connect_clicked and self.on_connect_clicked())
+        
 ##########################################################################
 ############ LEFT SIDE ######### RIGHT SIDE ##############################
 ############ Connect ########### SVG #####################################
@@ -240,10 +295,67 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         """)
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(0, 0, 0, 0)
+
+        # wrap container and buttons in one
+        self.dashed_zone = QWidget()
+        self.dashed_zone.setObjectName("dashedZone")
+        self.dashed_zone.setFixedSize(250, 165)
+        self.dashed_zone.setStyleSheet("""
+            #dashedZone {
+                border: 2px dashed #d2b48c;
+                background-color: #ffffff;
+                border-radius: 10px;
+                color: #4a4a4a;
+                font-size: 14px;
+            }
+            QPushButton {
+                background-color: #708090;
+                color: #ffffff;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #a8d5ba;
+                border: none;
+            }
+        """)
+
+        dashed_zone_layout = QVBoxLayout(self.dashed_zone)
+        dashed_zone_layout.setContentsMargins(16, 16, 16, 16)
+        dashed_zone_layout.setSpacing(10)
+        dashed_zone_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.drop_zone = DropZone()
+        self.drop_zone.fileDropped.connect(lambda path: self.on_upload_svg and self.on_upload_svg(path))
+        self.drop_zone.fileDropped.connect(lambda path: (self.dashed_zone.hide(), self.mpl_widget.show()))
+        #right_layout.addWidget(self.drop_zone, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        # add a separator
+        or_separator = QLabel("————— or —————")
+        or_separator.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        or_separator.setStyleSheet("color: #000000; font-size: 15px; border: none; background-color: transparent")
+
+        # adding upload button here?
+        self.image_upload = QPushButton("Upload Image")
+        self.image_upload.setFixedHeight(28)
+        self.image_upload.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.image_upload.clicked.connect(self._ask_open_svg)
+
+        dashed_zone_layout.addWidget(self.drop_zone)
+        dashed_zone_layout.addWidget(or_separator)
+        dashed_zone_layout.addWidget(self.image_upload, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        right_layout.addWidget(self.dashed_zone, alignment=Qt.AlignmentFlag.AlignCenter)        
         right_layout.addWidget(self.mpl_widget)
+
+        self.mpl_widget.hide()
 
         left_layout.addWidget(left_panel)
         left_layout.addWidget(right_panel, stretch=1)
+
+       
 
         #manual command dock
         # dock = QDockWidget("Manual Command", self)
@@ -364,7 +476,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self._progress.setTextVisible(True)
         self.statusbar.addPermanentWidget(self._progress, 1)
 
-        gcode_label = QLabel("Send GCode:")
+        gcode_label = QLabel("Begin Job:")
         gcode_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
         gcode_label.setStyleSheet("color: #4a4a4a; font-weight: bold; font-size: 15px; border-bottom: 1px solid #d9c5a0; padding-bottom: 4px; border-radius: 0px;")
         left_side.addWidget(gcode_label)
@@ -419,6 +531,26 @@ class ViewQt(QMainWindow, Ui_MainWindow):
 
 
 
+        ####################################################### 
+        ###### MAKING QUESTION MARK FOR FAQ OR HOW TO USE #####
+        # self._help_button = QPushButton("?", self.centralwidget)
+        # self._help_button.setFixedSize(30, 30)
+        # self._help_button.setStyleSheet("""
+        #     QPushButton {
+        #         background-color: #708090;
+        #         color: #ffffff;
+        #         border: none;
+        #         border-radius: 15px;
+        #         font-weight: bold;
+        #     }
+            
+        #     QPushButton:hover {
+        #         background-color: #a8d5ba;
+        #         border: none;
+        #     }
+        # """)
+        # self._help_button.clicked.connect(self._show_faq)
+                                        
         # manual present callbacks
         # self.manualLine.returnPressed.connect(self._send_manual_from_line)
         # self.manualSendBtn.clicked.connect(self._send_manual_from_button)
@@ -432,6 +564,12 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self.actionDraw_Text = QAction("Draw Text", self)
         self.menuMenu.addAction(self.actionDraw_Text)
         self.actionDraw_Text.triggered.connect(self._ask_draw_text)
+
+        # adding a help functionality
+        help_bar = self.menuBar().addMenu("Help")
+        faq_section = QAction("FAQ", self)
+        faq_section.triggered.connect(self._show_faq)
+        help_bar.addAction(faq_section)
         # If you add Pause/Resume buttons in .ui (names: pauseBtn/resumeBtn), hook them:
         # self.pauseBtn.clicked.connect(lambda: self.on_pause_clicked and self.on_pause_clicked())
         # self.resumeBtn.clicked.connect(lambda: self.on_resume_clicked and self.on_resume_clicked())
@@ -443,7 +581,39 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         #self.manualLine.hide()
         #self.manualSendBtn.hide()
         #self.create_show_svg_preview()
+
+        title_layout.addWidget(window_subtitle)
+        title_layout.addWidget(window_button)
+        window_layout.addWidget(conn_title)
+
+        # hide the connect 
+        self.connect.hide()
+
+        self._conn_window.resize(self.centralwidget.size())
+        self._conn_window.raise_()
+        self._conn_window.show()
+        #self._help_button.raise_()
         
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "_conn_window"):
+            self._conn_window.resize(self.centralwidget.size())
+        # if hasattr(self, "_help_button"):
+        #     self._help_button.move(
+        #         self.centralwidget.width() - 35,
+        #         self.centralwidget.height() - 20
+        #     )
+# REFERENCE: https://doc.qt.io/qtforpython-6/PySide6/QtWidgets/QMessageBox.html
+    def _show_faq(self):
+        faq_text = ("FAQ - How to Use:\n\n"
+                    "1. Connect to Arduino: Click 'Connect to Arduino'.\n"
+                    "2. Upload Image: Use 'Upload Image' under the File menu.\n"
+                    "3. Control Speed: Choose the desired speed.\n"
+                    "4. Toggle Color/Grayscale: Toggle between grayscale and color modes.\n"
+                    "5. Draw Text: 'Draw Text' under File menu gives you the option to input custom text.\n"
+                    "6. Send GCode: When ready press GCode and wait for magic to happen!\n"
+                    "\nNote: Images are set to be grayscale by default.")
+        QMessageBox.question(self, "FAQ - How to Use", faq_text)
 
     def _on_color_clicked(self, checked: bool):
             if checked:
@@ -462,15 +632,21 @@ class ViewQt(QMainWindow, Ui_MainWindow):
                 "background-color: #f08080; color: #ffffff; border: none;"
                 "border-radius: 4px; padding: 8px 16px; font-weight: bold;"
             )
+            # remove connetion window
+            self.connect.show()
+            self._conn_window.hide()
         else:
             self.status_dot.setStyleSheet("background-color: red; border-radius: 6px;")
             self.status_text.setText("Disconnected")
             self.connect.setText("Connect to Arduino")
             self.connect.setStyleSheet(
-            "background-color: #a8d5ba; color: #ffffff; border: none;"
-            "border-radius: 4px; padding: 8px 16px; font-weight: bold;"
+                "background-color: #a8d5ba; color: #ffffff; border: none;"
+                "border-radius: 4px; padding: 8px 16px; font-weight: bold;"
             )   
-        
+            self.connect.hide()
+            self._conn_window.resize(self.centralwidget.size())
+            self._conn_window.raise_()
+            self._conn_window.show()
         
         #self.connect.setText("Disconnect" if connected else "Connect to Arduino")
         self.statusbar.showMessage(desc if connected else "Disconnected", 3000)
@@ -530,6 +706,8 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         )
         if path and self.on_upload_svg:
             self.on_upload_svg(path)
+            self.dashed_zone.hide()
+            self.mpl_widget.show()
 
 
     def _ask_draw_text(self):
@@ -684,3 +862,55 @@ class ColorSwitch(QCheckBox):
     def setFontSize(self,value):
         self._fontSize = value
         self.update()
+
+# Making class for a drag and drop zone
+# REFERENCE: https://woteq.com/how-to-implement-drag-and-drop-file-upload-in-pyqt-using-python
+# https://www.tutorialspoint.com/pyqt/pyqt_drag_and_drop.htm
+# https://en.ittrip.xyz/python/pyqt-drag-drop-guide 
+class DropZone(QLabel):
+    fileDropped = pyqtSignal(str)
+    ask_open_svg = pyqtSignal()
+
+    def __init__(self, parent = None):
+        super().__init__(parent)
+
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setText("Drop Image Here ...")
+        self.setAcceptDrops(True)
+
+        # fixed size
+        self.setFixedSize(200, 100)
+
+        self.setStyleSheet("""
+            QLabel {
+                border: none;
+                background-color: transparent;
+                font-size: 14px;
+            }
+        """)
+
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                file_path = str(url.toLocalFile())
+                self.processFile(file_path)
+            event.accept()
+
+    def processFile(self, file_path):
+        image = QtGui.QImage(file_path)
+        pixmap = QtGui.QPixmap.fromImage(image)
+        self.setPixmap(pixmap.scaled(self.size(), QtCore.Qt.AspectRatioMode.KeepAspectRatio))
+        self.fileDropped.emit(file_path)
