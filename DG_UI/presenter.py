@@ -31,6 +31,7 @@ def _allow_sleep():
 
 # load the algorithm and all its functions
 from Interface.svg_algorithm import conversion_svg, extract_coordinates, animation_simulation, display_svg
+from Interface.svg_algorithm_color import conversion_svg_color, extract_coordinates_color
 
 import re
 
@@ -125,6 +126,8 @@ class Presenter:
         self._rx_buffer = ""
         self._speed_profile = "grbl_normal"
 
+        # add a path to store loaded image
+        self._last_image_path = None
 
         # This checks if the view has an attribute 'on_upload_svg' and if so, assigns the presenter's 'handle_upload_svg' method to it.
         if hasattr(self.v, "on_upload_svg"):
@@ -166,6 +169,12 @@ class Presenter:
             self.v.on_stop_clicked = self.handle_stop
         if hasattr(self.v, "on_speed_preset"):
             self.v.on_speed_preset = self.handle_speed_preset
+
+        # add buttons for color and grayscale 
+        if hasattr(self.v, "on_color_clicked"):
+            self.v.on_color_clicked = lambda: self._run_mode("color")
+        if hasattr(self.v, "on_grayscale_clicked"):
+            self.v.on_grayscale_clicked = lambda: self._run_mode("grayscale")
 
     def start(self):
         self.v.log("Ready. Upload G-code, click 'Connect to Arduino', then Send.")
@@ -388,7 +397,37 @@ class Presenter:
         
         # Fallback: use standard ask_open_file
         return self.v.ask_open_file()
+    
+    # differentiate between the modes
+    def _run_mode(self, mode: str):
+        if not self._last_image_path:
+            self.v.warn("No image loaded yet.")
+            return
 
+        path = self._last_image_path  
+        ext = Path(path).suffix.lower()
+
+        try:
+            if ext in [".png", ".jpg", ".jpeg", ".bmp"]:
+                # call grayscale
+                if mode == "grayscale":
+                    lines, width, height, width_inch, height_inch, width_cm, height_cm, output_path = conversion_svg(path, output_path="output.svg")
+                    strokes, num_strokes = extract_coordinates(output_path)
+                # call color
+                else:
+                    width, height, width_inch, height_inch, width_cm, height_cm, output_path = conversion_svg_color(path, output_path="output_color.svg")
+                    strokes, num_strokes = extract_coordinates_color(output_path)
+
+                if hasattr(self.v, "mpl_widget"):
+                    self.v.mpl_widget.plot_svg(strokes, num_strokes=num_strokes, image_size=(width_inch, height_inch))
+
+                self.v.log("Starting vpype conversion to G-code…")
+                out_path = str(Path(output_path).with_suffix(".gcode"))
+                self.v.log(f"G-code will be saved to: {Path(out_path).resolve()}")
+                self._vp.run_svg_to_gcode(output_path, out_path=out_path)
+
+        except Exception as e:
+            self.v.warn(f"Conversion failed: {e}")
         
     def handle_upload_svg(self, svg_path: str = None):
         if svg_path is None:
@@ -401,7 +440,9 @@ class Presenter:
             self.v.warn(f"file not found: {svg_path}")
             return
 
+        self._last_image_path = svg_path  
         self.v.log(f"Uploaded File: {svg_path}")
+        self._run_mode("grayscale")
         ext = Path(svg_path).suffix.lower()
 
         # ------------------ PREVIEW SECTION ------------------
