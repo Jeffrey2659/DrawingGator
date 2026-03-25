@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd /c \"dir /s /b \\\\\"C:\\\\Users\\\\jeffr\\\\OneDrive\\\\Desktop\\\\DrawingGator\\\\CustomArduinoCode\\\\\"\")",
+      "Bash(cmd /c \"dir \\\\\"C:\\\\Users\\\\jeffr\\\\OneDrive\\\\Desktop\\\\DrawingGator\\\\\"\" 2>&1)",
+      "Bash(cmd /c dir \"C:\\\\Users\\\\jeffr\\\\OneDrive\\\\Desktop\\\\DrawingGator\" 2>&1 | cat)",
+      "Bash(powershell -Command \"Get-ChildItem 'C:\\\\Users\\\\jeffr\\\\OneDrive\\\\Desktop\\\\DrawingGator\\\\CustomArduinoCode' -Recurse | Select-Object FullName\")"
+    ]
+  }
+}

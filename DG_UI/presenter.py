@@ -8,6 +8,25 @@ from vpype_runner import VpypeRunner
 from pathlib import Path
 import serial
 import os
+import sys
+import ctypes
+
+# Windows sleep prevention constants
+_ES_CONTINUOUS        = 0x80000000
+_ES_SYSTEM_REQUIRED   = 0x00000001
+_ES_DISPLAY_REQUIRED  = 0x00000002
+
+def _prevent_sleep():
+    """Tell Windows not to sleep while streaming G-code."""
+    if sys.platform == "win32":
+        ctypes.windll.kernel32.SetThreadExecutionState(
+            _ES_CONTINUOUS | _ES_SYSTEM_REQUIRED | _ES_DISPLAY_REQUIRED
+        )
+
+def _allow_sleep():
+    """Restore normal Windows sleep behaviour."""
+    if sys.platform == "win32":
+        ctypes.windll.kernel32.SetThreadExecutionState(_ES_CONTINUOUS)
 
 
 # load the algorithm and all its functions
@@ -143,6 +162,8 @@ class Presenter:
             self.v.on_pause_clicked = self.handle_pause
         if hasattr(self.v, "on_resume_clicked"):
             self.v.on_resume_clicked = self.handle_resume
+        if hasattr(self.v, "on_stop_clicked"):
+            self.v.on_stop_clicked = self.handle_stop
         if hasattr(self.v, "on_speed_preset"):
             self.v.on_speed_preset = self.handle_speed_preset
 
@@ -208,8 +229,17 @@ class Presenter:
         if not self.m.lines:
             self.v.warn("No G-code loaded.")
             return
+
+        # If we stopped mid-job, resume from where we left off
+        if self.streamer.has_resume_point:
+            self.v.log(f"Resuming from line {self.streamer.idx}/{self.streamer.total}…")
+            _prevent_sleep()
+            self.streamer.resume()
+            return
+
         self.m.reset_job_counters()
         self.v.log("Starting G-code stream…")
+        _prevent_sleep()
         for raw in self.m.lines:
             try:
                 line = raw.decode("ascii", errors="replace").rstrip()
@@ -218,7 +248,14 @@ class Presenter:
             if line:
                 self.v.log(f">> {line}")
         self.streamer.start(self.m.lines)
-        self.v.log("Streaming started: Debug Checkpoint 1.")
+        self.v.log("Streaming started.")
+
+    def handle_stop(self):
+        """Stop mid-job and preserve position so Send can resume later."""
+        if not self.streamer.is_paused():
+            self.streamer.stop_preserve()
+            _allow_sleep()
+            self.v.log(f"Stopped at line {self.streamer.idx}/{self.streamer.total}. Click Send to resume.")
 
     def handle_pause(self):
         if not self.streamer.is_paused():
@@ -285,6 +322,15 @@ class Presenter:
         self.v.warn(text)
 
     def _on_conn_changed(self, ok: bool, desc: str):
+        if not ok:
+            _allow_sleep()
+            if self.streamer.has_resume_point:
+                saved = self.streamer.idx
+                total = self.streamer.total
+                self.streamer.stop_preserve()
+                self.v.log(f"Disconnected mid-job. Stopped at line {saved}/{total}. Reconnect and click Send to resume.")
+            else:
+                self.streamer.stop_preserve()
         self.v.set_connected(ok, desc)
         self.v.log(f"{'Connected: ' + desc if ok else 'Disconnected.'}")
 
@@ -294,6 +340,7 @@ class Presenter:
         self.v.log(f">> [{sent}/{total}]")
 
     def _on_finished(self):
+        _allow_sleep()
         self.v.set_progress(self.m.total, max(1, self.m.total))
         self.v.log("Stream complete.")
 

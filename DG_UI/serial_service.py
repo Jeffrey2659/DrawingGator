@@ -39,6 +39,8 @@ class _SerialWorker(QObject):
             except Exception as e:
                 self.errorText.emit(f"Serial write error: {e}")
                 self._tx.clear()
+                self._timer.stop()
+                self.closed.emit()
                 break
             #grbl receive buffer is 128 bytes, so only sending after receiving the okay from the receiveries ensures the buffer does not overflow
         # read RX
@@ -48,6 +50,8 @@ class _SerialWorker(QObject):
                 self.bytesReady.emit(b)
         except Exception as e:
             self.errorText.emit(f"Serial read error: {e}")
+            self._timer.stop()
+            self.closed.emit()
 
 
     @pyqtSlot(bytes)

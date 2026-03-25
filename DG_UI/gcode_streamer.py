@@ -63,7 +63,21 @@ class GCodeStreamer(QObject):
             return
         self._paused = False
         self.pausedChanged.emit(False)
+        self.timer.start()   # restart timer in case it was stopped by stop_preserve()
         self._try_send_next()
+
+    def stop_preserve(self):
+        """Stop streaming but keep idx/lines so it can be resumed later."""
+        self.timer.stop()
+        self.awaiting_ok = False  # clear the hang so resume() works immediately
+        self._rx.clear()
+        self._paused = True
+        self.pausedChanged.emit(True)
+
+    @property
+    def has_resume_point(self) -> bool:
+        """True if a mid-job stop was made and there are remaining lines."""
+        return self._paused and bool(self.lines) and 0 < self.idx < self.total
 
     def is_paused(self) -> bool:
         return self._paused

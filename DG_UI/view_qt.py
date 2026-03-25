@@ -25,6 +25,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
     # Add additional line for svg preview revert
     on_show_svg_preview = None
     on_speed_preset = None
+    on_stop_clicked = None
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -269,8 +270,26 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         # UI -> Presenter callbacks
         #if no lambda then it calls the function immediately instead of waiting for the button to be clicked
         #the lambda creates an anonymous function that calls the function when the button is clicked
+        # Replace the bare sendGcode button with a Send + Stop row
+        send_idx = self.verticalLayout_2.indexOf(self.sendGcode)
+        self.verticalLayout_2.removeWidget(self.sendGcode)
+
+        send_row = QWidget(self.centralwidget)
+        send_row_layout = QHBoxLayout(send_row)
+        send_row_layout.setContentsMargins(0, 0, 0, 0)
+        send_row_layout.addWidget(self.sendGcode)
+
+        self.stopBtn = QPushButton("Stop", send_row)
+        self.stopBtn.setStyleSheet(
+            "background-color: #e07070; color: #fff; border: 1px solid #c05050;"
+            "border-radius: 4px; padding: 6px 12px; font-weight: bold;"
+        )
+        send_row_layout.addWidget(self.stopBtn)
+        self.verticalLayout_2.insertWidget(send_idx, send_row)
+
         self.connect.clicked.connect(lambda: self.on_connect_clicked and self.on_connect_clicked())
         self.sendGcode.clicked.connect(lambda: self.on_send_clicked and self.on_send_clicked())
+        self.stopBtn.clicked.connect(lambda: self.on_stop_clicked and self.on_stop_clicked())
         self.actionUpload_Gcode.triggered.connect(lambda: self.on_upload_clicked and self.on_upload_clicked())
 
 
