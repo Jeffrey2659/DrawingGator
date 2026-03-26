@@ -70,8 +70,8 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.connect.setText(_translate("MainWindow", "Connect to Arduino"))
-        self.sendGcode.setText(_translate("MainWindow", "Send Gcode"))
-        self.menuMenu.setTitle(_translate("MainWindow", "File"))
+        self.sendGcode.setText(_translate("MainWindow", "Start Drawing"))
+        self.menuMenu.setTitle(_translate("MainWindow", "Menu"))
         self.menuEdit.setTitle(_translate("MainWindow", "Edit"))
         self.menuFilter.setTitle(_translate("MainWindow", "Filter"))
         self.actionUpload_Image.setText(_translate("MainWindow", "Upload Image"))
