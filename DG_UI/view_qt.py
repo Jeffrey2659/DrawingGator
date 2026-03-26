@@ -567,6 +567,11 @@ class ViewQt(QMainWindow, Ui_MainWindow):
 
         # adding a help functionality
         help_bar = self.menuBar().addMenu("Help")
+        
+        how_to_use = QAction("How to Use", self)
+        how_to_use.triggered.connect(self._how_to_use)
+        help_bar.addAction(how_to_use)
+
         faq_section = QAction("FAQ", self)
         faq_section.triggered.connect(self._show_faq)
         help_bar.addAction(faq_section)
@@ -605,15 +610,29 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         #     )
 # REFERENCE: https://doc.qt.io/qtforpython-6/PySide6/QtWidgets/QMessageBox.html
     def _show_faq(self):
-        faq_text = ("FAQ - How to Use:\n\n"
-                    "1. Connect to Arduino: Click 'Connect to Arduino'.\n"
-                    "2. Upload Image: Use 'Upload Image' under the File menu.\n"
-                    "3. Control Speed: Choose the desired speed.\n"
-                    "4. Toggle Color/Grayscale: Toggle between grayscale and color modes.\n"
-                    "5. Draw Text: 'Draw Text' under File menu gives you the option to input custom text.\n"
-                    "6. Send GCode: When ready press GCode and wait for magic to happen!\n"
-                    "\nNote: Images are set to be grayscale by default.")
-        QMessageBox.question(self, "FAQ - How to Use", faq_text)
+        faq_text = ("FAQ - How to proceed if stuck\n\n"
+                    "1. Why isn't an image being processed?'.\n"
+                    "  --- Check that the format is correct.\n"
+                    "2. Why change the speed?.\n"
+                    "  --- \n"
+                    "3. What happens if I don't like the drawing?\n"
+                    "  --- You can stop and retry (small glitches may happen don't worry).\n"
+
+                    )
+        QMessageBox.information(self, "FAQ - How to Use", faq_text)
+
+    def _how_to_use(self):
+        how_to_text = (
+            "How to use the app:\n\n"
+            "- IMPORTANT: Need to connect to the device\n"
+            "- You can upload any image in any format (e.g jpeg, jpg, png, svg, bmp)\n"
+            "- After loading in Progess Bar, 'Ready' with a green light with display to show that everything is ready to proceed\n"
+            "- A toggle switch is located in the left panel, if you wish to switch from grayscale to color\n"
+            "- If you are satisfied with the output proceed to 'Start Drawing' button\n"
+            "- Follow the progress in the Progess Bar section\n"
+            "\nNote: Images are set to be grayscale by default."
+        )
+        QMessageBox.information(self, "How to", how_to_text)
 
     def _on_color_clicked(self, checked: bool):
             if checked:
