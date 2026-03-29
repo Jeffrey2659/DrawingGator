@@ -215,12 +215,12 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         window_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         conn_title = QFrame(self._conn_window)
-        conn_title.setFixedSize(200, 140)
+        conn_title.setFixedSize(200, 160)
         conn_title.setStyleSheet("""
             QFrame {
                 background-color: #ffffff;
                 border-radius: 10px;
-                border: 1px solid #d9d9d9;
+                border: 1.5px solid #d9d9d9;
             }
         """)
 
@@ -229,7 +229,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         title_layout.setSpacing(6)
         title_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        window_subtitle = QLabel("Connect to your Arduino to get started!")
+        window_subtitle = QLabel("Connect to the device!")
         window_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         window_subtitle.setWordWrap(True)
         window_subtitle.setStyleSheet(
@@ -255,6 +255,28 @@ class ViewQt(QMainWindow, Ui_MainWindow):
                 border: none;
             }
         """)
+
+        # continue without connecting
+        without_conn = QPushButton("Continue")
+        without_conn.setFixedHeight(28)
+        without_conn.setCursor(Qt.CursorShape.PointingHandCursor)
+        without_conn.setStyleSheet("""
+            QPushButton {
+                background-color: #a8d5ba;
+                color: #ffffff;
+                border: none;
+                border-radius: 4px;
+                padding: 6px 12px;
+                font-weight: bold;
+            }
+            
+            QPushButton:hover {
+                background-color: #a8d5d1;
+                border: none;
+            }
+        """)
+        without_conn.clicked.connect(self._dismiss_connect)
+
         window_button.clicked.connect(lambda: self.on_connect_clicked and self.on_connect_clicked())
         
 ##########################################################################
@@ -324,7 +346,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         """)
 
         dashed_zone_layout = QVBoxLayout(self.dashed_zone)
-        dashed_zone_layout.setContentsMargins(16, 16, 16, 16)
+        dashed_zone_layout.setContentsMargins(6, 6, 6, 6)
         dashed_zone_layout.setSpacing(10)
         dashed_zone_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -344,10 +366,17 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self.image_upload.setCursor(Qt.CursorShape.PointingHandCursor)
         self.image_upload.clicked.connect(self._ask_open_svg)
 
+        # draw text
+        self.draw_text = QPushButton("Draw Text")
+        self.draw_text.setFixedHeight(28)
+        self.draw_text.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.draw_text.clicked.connect(self._ask_draw_text)
+
         dashed_zone_layout.addWidget(self.drop_zone)
         dashed_zone_layout.addWidget(or_separator)
         dashed_zone_layout.addWidget(self.image_upload, alignment=Qt.AlignmentFlag.AlignCenter)
-
+        dashed_zone_layout.addWidget(self.draw_text, alignment=Qt.AlignmentFlag.AlignCenter)
+        
         right_layout.addWidget(self.dashed_zone, alignment=Qt.AlignmentFlag.AlignCenter)        
         right_layout.addWidget(self.mpl_widget)
 
@@ -482,6 +511,12 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         gcode_label.setStyleSheet("color: #4a4a4a; font-weight: bold; font-size: 15px; border-bottom: 1px solid #d9c5a0; padding-bottom: 4px; border-radius: 0px;")
         left_side.addWidget(gcode_label)
         left_side.addWidget(self.sendGcode, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.stopBtn = QPushButton("Stop")
+        self.stopBtn.setStyleSheet(
+            "background-color: #e07070; color: #fff; border: 1px solid #c05050;"
+            "border-radius: 4px; padding: 6px 12px; font-weight: bold;"
+        )
+        left_side.addWidget(self.stopBtn, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # toggle 
         self.toggle_switch = ColorSwitch(
@@ -530,18 +565,18 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         send_idx = self.verticalLayout_2.indexOf(self.sendGcode)
         self.verticalLayout_2.removeWidget(self.sendGcode)
 
-        send_row = QWidget(self.centralwidget)
-        send_row_layout = QHBoxLayout(send_row)
-        send_row_layout.setContentsMargins(0, 0, 0, 0)
-        send_row_layout.addWidget(self.sendGcode)
+        # send_row = QWidget(self.centralwidget)
+        # send_row_layout = QHBoxLayout(send_row)
+        # send_row_layout.setContentsMargins(0, 0, 0, 0)
+        # send_row_layout.addWidget(self.sendGcode)
 
-        self.stopBtn = QPushButton("Stop", send_row)
-        self.stopBtn.setStyleSheet(
-            "background-color: #e07070; color: #fff; border: 1px solid #c05050;"
-            "border-radius: 4px; padding: 6px 12px; font-weight: bold;"
-        )
-        send_row_layout.addWidget(self.stopBtn)
-        self.verticalLayout_2.insertWidget(send_idx, send_row)
+        # self.stopBtn = QPushButton("Stop", send_row)
+        # self.stopBtn.setStyleSheet(
+        #     "background-color: #e07070; color: #fff; border: 1px solid #c05050;"
+        #     "border-radius: 4px; padding: 6px 12px; font-weight: bold;"
+        # )
+        # send_row_layout.addWidget(self.stopBtn)
+        # self.verticalLayout_2.insertWidget(send_idx, send_row)
 
         self.connect.clicked.connect(lambda: self.on_connect_clicked and self.on_connect_clicked())
         self.sendGcode.clicked.connect(lambda: self.on_send_clicked and self.on_send_clicked())
@@ -608,6 +643,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
 
         title_layout.addWidget(window_subtitle)
         title_layout.addWidget(window_button)
+        title_layout.addWidget(without_conn, alignment=Qt.AlignmentFlag.AlignCenter)
         window_layout.addWidget(conn_title)
 
         # hide the connect 
@@ -617,6 +653,10 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         self._conn_window.raise_()
         self._conn_window.show()
         #self._help_button.raise_()
+
+    def _dismiss_connect(self):
+        self._conn_window.hide()
+        self.connect.show()
         
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -754,6 +794,8 @@ class ViewQt(QMainWindow, Ui_MainWindow):
             text = dlg.get_text()
             if text.strip() and self.on_draw_text:
                 self.on_draw_text(text, dlg.get_font(), dlg.get_size(), dlg.get_mirror())
+                self.dashed_zone.hide()
+                self.mpl_widget.show()
 
     def open_color_window(self):
         self.color_window = ColorWidget(self)
