@@ -13,8 +13,8 @@ There are 6 pins that must be connected. All digital pins `D#` may also be read 
 - `D3` - Servo PWM data pin
 - `D6` - Left motor direction pin
 - `D7` - Left motor step pin
-- `D10` - Right motor direction pin
-- `D11` - Right motor step pin
+- `D8` - Right motor direction pin
+- `D9` - Right motor step pin
 
 Currently power is provided through the USB cable and the PC. This may change later on, but means that we are guaranteed to be connected to the device and can be powered independently.
 

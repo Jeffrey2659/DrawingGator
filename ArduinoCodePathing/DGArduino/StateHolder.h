@@ -56,6 +56,7 @@ struct StateHolder : public Printable {
   UNIT_STATE unitState = ABS_INCHES; 
   SERVO_STATE penState = PEN_UP;
   MOVE_STATE moveState = RESTARTING;
+  uSTEP_PREC ustepState = uSTEP_MIN_PREC;
 
   StateHolder() {};
 

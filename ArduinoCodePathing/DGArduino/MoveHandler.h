@@ -9,8 +9,12 @@
 #define SERVO_PIN 3
 #define LEFT_MOTOR_DIR_PIN 6
 #define LEFT_MOTOR_STEP_PIN 7
-#define RIGHT_MOTOR_DIR_PIN 10
-#define RIGHT_MOTOR_STEP_PIN 11
+#define RIGHT_MOTOR_DIR_PIN 8
+#define RIGHT_MOTOR_STEP_PIN 9
+#define MICRO_STEP_CTRL_0 10
+#define MICRO_STEP_CTRL_1 11
+#define MICRO_STEP_CTRL_2 12
+
 
 struct MoveHandler {
   unsigned int leftMoves = 0;
@@ -24,6 +28,39 @@ struct MoveHandler {
   int RDIR = LOW;
   unsigned long LMOD = -1;
   unsigned long RMOD = -1;
+
+  void setuStepMode(StateHolder& sh, StateHolder::uSTEP_PREC newPrec) {
+    switch(newPrec) {
+      case StateHolder::uSTEP_MIN_PREC:
+        digitalWrite(MICRO_STEP_CTRL_0, LOW);
+        digitalWrite(MICRO_STEP_CTRL_1, LOW);
+        digitalWrite(MICRO_STEP_CTRL_2, LOW);
+        break;
+      case StateHolder::uSTEP_LOW_PREC: 
+        digitalWrite(MICRO_STEP_CTRL_0, HIGH);
+        digitalWrite(MICRO_STEP_CTRL_1, LOW);
+        digitalWrite(MICRO_STEP_CTRL_2, LOW);
+        break;
+      case StateHolder::uSTEP_MED_PREC:
+        digitalWrite(MICRO_STEP_CTRL_0, LOW);
+        digitalWrite(MICRO_STEP_CTRL_1, HIGH);
+        digitalWrite(MICRO_STEP_CTRL_2, LOW);
+        break;
+      case StateHolder::uSTEP_HIGH_PREC:
+        digitalWrite(MICRO_STEP_CTRL_0, HIGH);
+        digitalWrite(MICRO_STEP_CTRL_1, HIGH);
+        digitalWrite(MICRO_STEP_CTRL_2, LOW);
+        break;
+      case StateHolder::uSTEP_MAX_PREC:
+        digitalWrite(MICRO_STEP_CTRL_0, HIGH);
+        digitalWrite(MICRO_STEP_CTRL_1, HIGH);
+        digitalWrite(MICRO_STEP_CTRL_2, HIGH);
+        break;
+      default:
+        return; // not real state, do not set value
+    }
+    sh.ustepState = newPrec;
+  }
 
   void initMoves(StateHolder& sh) {
     leftMoves = 0;
@@ -55,6 +92,9 @@ struct MoveHandler {
     pinMode(LEFT_MOTOR_STEP_PIN, OUTPUT);
     pinMode(RIGHT_MOTOR_DIR_PIN, OUTPUT);
     pinMode(RIGHT_MOTOR_STEP_PIN, OUTPUT);
+    pinMode(MICRO_STEP_CTRL_0, OUTPUT);
+    pinMode(MICRO_STEP_CTRL_1, OUTPUT);
+    pinMode(MICRO_STEP_CTRL_2, OUTPUT);
   }
 
   void trySteps(StateHolder& sh) {

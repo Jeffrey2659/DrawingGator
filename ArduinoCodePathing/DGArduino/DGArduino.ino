@@ -45,8 +45,10 @@ void loop() {
     // clear out current actions
     sh.curLeg = LegData();
     sh.nextLeg = LegData();
+    sh.changedMove = false;
     sh.setPWM(0); // Reset servo 
     sh.trySetSpeed(100); // Reset speed
+    mh.setuStepMode(sh, StateHolder::uSTEP_MIN_PREC); 
 
     sh.moveState = StateHolder::IDLE; // move along
     return;
@@ -79,7 +81,7 @@ void loop() {
     if (sh.curLeg.valid) {
       mh.trySteps(sh);
     } else {
-      sh.moveState == StateHolder::IDLE;
+      sh.moveState = StateHolder::IDLE;
     }
 
     if (!sh.changedMove) {
