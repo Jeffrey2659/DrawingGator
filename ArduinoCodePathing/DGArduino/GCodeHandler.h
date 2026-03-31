@@ -42,7 +42,7 @@ private:
   const char delete_key = 0x7f;
   ArrayList<char> curCommand;
   LegData storedLegData;
-  StateHolder* statesPtr;
+  StateHolder* sh;
 
   bool hasArg(char key, ArrayList<KeyValueItem<char, double>> commandArgs) {
     for (int i = 0; i < commandArgs.getSize(); i++) {
@@ -50,7 +50,7 @@ private:
         return true;
       }
     }
-    if (statesPtr->debugMode) {
+    if (sh->debugMode) {
       Serial.print("Missing arg: ");
       Serial.println(key);
     }
@@ -68,8 +68,8 @@ private:
 
   bool holdData(LegData legToStore) {
     storedLegData = legToStore;
-    if (!statesPtr->nextLeg.valid) {
-      statesPtr->nextLeg = storedLegData;
+    if (!sh->nextLeg.valid) {
+      sh->nextLeg = storedLegData;
       // Ok will be sent when move is done
     } else {
       sendErr(ERROR_ENUM::STATE_LEGS_FULL);
@@ -78,7 +78,7 @@ private:
 
 public:
   GCodeHandler(StateHolder& states) {
-    statesPtr = &states;
+    sh = &states;
   }
 
   LegData getStoredLegData() {
@@ -130,23 +130,22 @@ public:
   bool translateGCode(ArrayList<KeyValueItem<char, double>> commandPairs) {
     // What happens here depends on instruction and parameters
     if (commandPairs.getSize() < 1) {
-      if (statesPtr->debugMode) {
+      if (sh->debugMode) {
         Serial.println("Error: Command does not have instruction to execute");
       }
       // sendErr(ERROR_ENUM::GCODE_PARSE);
       return false; // Uh oh!
     }
     int valAsInt = (int)(commandPairs[0].value);
-    double xoff = statesPtr->curOffset.X;
-    double yoff = statesPtr->curOffset.Y;
+    double xoff = sh->curOffset.X;
+    double yoff = sh->curOffset.Y;
     double gx, gy, cx, cy;
-    int s, l, r;
-    unsigned int f;
+    int s, l, r, f;
     switch (commandPairs[0].key) {
       case 'G':
         switch (valAsInt) {
           case GCOM_DEBUG_MODE_T:
-            statesPtr->debugMode = !statesPtr->debugMode;
+            sh->debugMode = !sh->debugMode;
             sendOk();
             break;
 
@@ -155,13 +154,13 @@ public:
             if (!hasArg('Y', commandPairs)) { return false; }
             gx = getArg('X', commandPairs);
             gy = getArg('Y', commandPairs);
-            // f = getArg('F', commandPairs);
-            // f = (f != 0 ? f : statesPtr->curMoveSpeed * 2 );
-            f = statesPtr->curMoveSpeed;
+            f = getArg('F', commandPairs);
+            sh->trySetSpeed(f);
+            f = sh->curMoveSpeed;
             // Idk why but this is making lines too long
             // Just changing to be SPLIT_LINE instead of RAPID_LINE as temp fix
             // Currently, G0 is alias for G1
-            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, SPLIT_LINE, f)); // Speeeed!
+            holdData(LegData(sh->toInchAbs(Vector2d(0.0, 0.0)), sh->toInchAbs(Vector2d(gx + xoff, gy + yoff)), RAPID_LINE, f)); // Speeeed!
             // Ok or Err sent in holdData();
             break;
 
@@ -170,10 +169,10 @@ public:
             if (!hasArg('Y', commandPairs)) { return false; }
             gx = getArg('X', commandPairs);
             gy = getArg('Y', commandPairs);
-            // f = getArg('F', commandPairs);
-            // f = (f != 0 ? f : statesPtr->curMoveSpeed );
-            f = statesPtr->curMoveSpeed;
-            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, SPLIT_LINE, f));
+            f = getArg('F', commandPairs);
+            sh->trySetSpeed(f);
+            f = sh->curMoveSpeed;
+            holdData(LegData(sh->toInchAbs(Vector2d(0.0, 0.0)), sh->toInchAbs(Vector2d(gx + xoff, gy + yoff)), SPLIT_LINE, f));
             // Ok or Err sent in holdData();
             break;
 
@@ -186,10 +185,10 @@ public:
             gy = getArg('Y', commandPairs);
             cx = getArg('I', commandPairs);
             cy = getArg('J', commandPairs);
-            // f = getArg('F', commandPairs);
-            // f = (f != 0 ? f : statesPtr->curMoveSpeed );
-            f = statesPtr->curMoveSpeed;
-            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, cx + xoff, cy + yoff, CLW_ROTATE, f));
+            f = getArg('F', commandPairs);
+            sh->trySetSpeed(f);
+            f = sh->curMoveSpeed;
+            holdData(LegData(sh->toInchAbs(Vector2d(0.0, 0.0)), sh->toInchAbs(Vector2d(gx + xoff, gy + yoff)), sh->toInchAbs(Vector2d(cx + xoff, cy + yoff)), CLW_ROTATE, f));
             // Ok or Err sent in holdData();
             break;
 
@@ -202,41 +201,45 @@ public:
             gy = getArg('Y', commandPairs);
             cx = getArg('I', commandPairs);
             cy = getArg('J', commandPairs);
-            // f = getArg('F', commandPairs);
-            // f = (f != 0 ? f : statesPtr->curMoveSpeed );
-            f = statesPtr->curMoveSpeed;
-            holdData(LegData(0.0, 0.0, gx + xoff, gy + yoff, cx + xoff, cy + yoff, CCW_ROTATE, f));
+            f = getArg('F', commandPairs);
+            sh->trySetSpeed(f);
+            f = sh->curMoveSpeed;
+            holdData(LegData(sh->toInchAbs(Vector2d(0.0, 0.0)), sh->toInchAbs(Vector2d(gx + xoff, gy + yoff)), sh->toInchAbs(Vector2d(cx + xoff, cy + yoff)), CCW_ROTATE, f));
             break;
 
           case GCOM_DIRECT_STEPPER_MV:
             l = getArg('L', commandPairs); // No has because optional
             r = getArg('R', commandPairs); // No has because optional
-            statesPtr->setMove(l, r);
+            f = getArg('F', commandPairs);
+            sh->trySetSpeed(f);
+            f = sh->curMoveSpeed;
+            // Do not convert l and r, they are step values, not absolute or rel, nor inch or milli
+            holdData(LegData(sh->toInchAbs(Vector2d(0.0, 0.0)), Vector2d(l, r), DIRECT_MOVE, f));
             break;
 
           case GCOM_SEND_STATE:
-            Serial.println(*statesPtr);
+            Serial.println(*sh);
             sendOk();
             break;
 
           case GCOM_UNITS_INCHES:
-            statesPtr->setInches();
+            sh->setInches();
             sendOk();
             break;
 
           case GCOM_UNITS_MILLIS:
-            statesPtr->setMillis();
-            sendErr(ERROR_ENUM::GCODE_EXEC); // Not yet implemented
+            sh->setMillis();
+            sendOk(); // NEEDS TO BE TESTED
             break;
 
           case GCOM_ABSOLUTE_POS:
-            statesPtr->setAbsolute();
+            sh->setAbsolute();
             sendOk();
             break;
 
           case GCOM_RELATIVE_POS:
-            statesPtr->setRelative();
-            sendErr(ERROR_ENUM::GCODE_EXEC); // Not yet implemented
+            sh->setRelative();
+            sendOk(); // NEEDS TO BE TESTED
             break;
 
           case GCOM_SET_CUR_POS:
@@ -246,13 +249,14 @@ public:
             gy = getArg('Y', commandPairs);
             cx = getArg('I', commandPairs);
             cy = getArg('J', commandPairs);
-            statesPtr->curPos = Vector2d(cx, cy);
-            statesPtr->curOffset = statesPtr->curPos - Vector2d(gx, gy); // Assumes offsets of 0,0 if not given
+            // Assumed to be absolute already, never convert as rel
+            sh->curPos = sh->toInch(Vector2d(cx, cy));
+            sh->curOffset = sh->curPos - sh->toInch(Vector2d(gx, gy)); // Assumes offsets of 0,0 if not given
             sendOk();
             break;
 
           default:
-            if (statesPtr->debugMode) {
+            if (sh->debugMode) {
               Serial.print("Error: G command number [");
               Serial.print(valAsInt);
               Serial.println("] does not exist.");
@@ -260,13 +264,12 @@ public:
             sendErr(ERROR_ENUM::GCODE_PARSE);
             return false;
             break;
-
         }
         break;
       case 'M':
         switch (valAsInt) {
           case MCOM_UNCOND_HALT:
-            statesPtr->moveState = StateHolder::HALTED; // May need changin?
+            sh->moveState = StateHolder::HALTED; // May need changin?
             sendOk();
             break;
 
@@ -279,41 +282,41 @@ public:
             if (!hasArg('S', commandPairs)) { return false; }
             s = getArg('S', commandPairs);
 
-            if ((statesPtr->penState = StateHolder::PEN_DOWN) && (s > 240)) {
+            if ((sh->penState = StateHolder::PEN_DOWN) && (s > 240)) {
               sendOk(); // If the pen is already down, just get out
               break;
             }
 
-            statesPtr->setPWM(s);
+            sh->setPWM(s);
             if (s > 240) {                                     // May need changin?
-              statesPtr->penState = StateHolder::PEN_DOWN; 
+              sh->penState = StateHolder::PEN_DOWN; 
             } else {
-              statesPtr->penState = StateHolder::PEN_UP; 
+              sh->penState = StateHolder::PEN_UP; 
             }
             // responds OK in main code
             break;
 
           case MCOM_CONTINUE:
-            if (!(statesPtr->moveState == StateHolder::HALTED)) {
-              sendErr(ERROR_ENUM::NO_CONT_NOT_HALT);
+            if (!(sh->moveState == StateHolder::HALTED)) {
+              sendErr(ERROR_ENUM::GCODE_EXEC);
               break;
             }
-            statesPtr->moveState = StateHolder::IDLE;
+            sh->moveState = StateHolder::IDLE;
             sendOk();
             break;
 
           case MCOM_SHUTDOWN:
-            statesPtr->moveState = StateHolder::STOPPED;
+            sh->moveState = StateHolder::STOPPED;
             sendOk();
             break;
 
           case MCOM_RESTART:
-            statesPtr->moveState = StateHolder::RESTARTING;
+            sh->moveState = StateHolder::RESTARTING;
             sendOk();
             break;
 
           default:
-            if (statesPtr->debugMode) {
+            if (sh->debugMode) {
               Serial.print("Error: M command number [");
               Serial.print(valAsInt);
               Serial.println("] does not exist.");
@@ -325,7 +328,7 @@ public:
         }
         break;
       default:
-        if (statesPtr->debugMode) {
+        if (sh->debugMode) {
           Serial.print("Error: Command letter [");
           Serial.print(commandPairs[0].key);
           Serial.println("] does not exist. Did mean to use [G] or [M]?");
@@ -343,7 +346,7 @@ public:
     while (Serial.available() > 0) {
       // Because ArrayList doesn't typically exist here, will be much more interesting
       char data = Serial.read();
-      if (statesPtr->debugMode) {
+      if (sh->debugMode) {
         Serial.print(data);
       }
 
@@ -352,7 +355,7 @@ public:
           // sendErr(ERROR_ENUM::GCODE_RECEIV);
           continue; // Keep going, ignore this data
         }
-        if (statesPtr->debugMode) {
+        if (sh->debugMode) {
           Serial.print(">> ");
           Serial.println(curCommand.setPrintFormat(ArrayList<char>::ALPF_HORIZ_RAW));
         }

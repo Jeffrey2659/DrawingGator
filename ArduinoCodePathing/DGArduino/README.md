@@ -85,7 +85,7 @@ Once the program is running on the device, you send a command over UART on the U
   - Required arguments:
     - `double X` - X of new position (in units)
     - `double Y` - Y of new position (in units)
-  - Optional arguments: None
+  - Optional arguments: None  
 - [`G2`] Arc Move
   - Attempts to move from current position to the provided position using the circular movement algorithm.
   - Required arguments:

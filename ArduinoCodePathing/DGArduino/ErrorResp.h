@@ -12,9 +12,7 @@ struct ERROR_ENUM {
     GCODE_PARSE,
     GCODE_EXEC,
     GCODE_ARG,
-    STATE_LEGS_FULL,
-    NO_CONT_NOT_HALT,
-    ALGO_LOCAL_MIN
+    STATE_LEGS_FULL
   };
 };
 
@@ -46,12 +44,6 @@ void sendErr(ERROR_ENUM::Error errCode) {
       break;
     case ERROR_ENUM::GENERIC:
       Serial.println("GENERIC");
-      break;
-    case ERROR_ENUM::NO_CONT_NOT_HALT:
-      Serial.println("NO_CONT_NOT_HALT");
-      break;
-    case ERROR_ENUM::ALGO_LOCAL_MIN:
-      Serial.println("ALGO_LOCAL_MIN");
       break;
     default:
       Serial.println("UNKNOWN");
