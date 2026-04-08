@@ -18,11 +18,22 @@ struct StateHolder : public Printable {
     PEN_UP,
     PEN_SWAP
   };
+  enum uSTEP_PREC { // microstep precision 
+    uSTEP_MIN_PREC  = 0,    // No microstep, normal step
+    uSTEP_LOW_PREC  = 1,    // 1/2 step microsteps
+    uSTEP_MED_PREC  = 2,    // 1/4 step microsteps
+    uSTEP_HIGH_PREC = 3,    // 1/8 step microsteps
+    uSTEP_MAX_PREC  = 4     // 1/16 step microsteps
+  };
   enum UNIT_STATE {
-    ABS_INCHES,   // 00b
-    ABS_MILLIS,   // 01b
-    REL_INCHES,   // 10b
-    REL_MILLIS    // 11b
+    ABS_INCHES = 0b00,
+    ABS_MILLIS = 0b01,
+    REL_INCHES = 0b10,
+    REL_MILLIS = 0b11
+  };
+  enum UNIT_MASKS {
+    ABS_REL_MASK = 0x02,
+    INCH_MILLI_MASK = 0x01
   };
 
   bool debugMode = false;
@@ -32,7 +43,7 @@ struct StateHolder : public Printable {
   LegData curLeg;
   LegData nextLeg;
 
-  unsigned int curMoveSpeed = 120;
+  unsigned int curMoveSpeed = 100;
   int curPWM = 0;
   bool changedPWM = true;
 
@@ -45,22 +56,23 @@ struct StateHolder : public Printable {
   UNIT_STATE unitState = ABS_INCHES; 
   SERVO_STATE penState = PEN_UP;
   MOVE_STATE moveState = RESTARTING;
+  uSTEP_PREC ustepState = uSTEP_MIN_PREC;
 
   StateHolder() {};
 
   // Unit setters (NOT YET TESTED)
   // Just did it this way cause I felt like it
   void setAbsolute() {
-    unitState = unitState & 0xFD; // clear bit 1
+    unitState = unitState & (~ABS_REL_MASK); // clear bit 1
   }
   void setRelative() {
-    unitState = unitState | 0x02; // set bit 1
+    unitState = unitState | (ABS_REL_MASK); // set bit 1+
   }
   void setInches() {
-    unitState = unitState & 0xFE; // clear bit 0
+    unitState = unitState & (~INCH_MILLI_MASK); // clear bit 0
   }
   void setMillis() {
-    unitState = unitState | 0x01; // set bit 0
+    unitState = unitState | (INCH_MILLI_MASK); // set bit 0
   }
 
   void setPWM(int newPWM) {
@@ -72,6 +84,11 @@ struct StateHolder : public Printable {
     lMove = l; 
     rMove = r;
     changedMove = true;
+  }
+
+  void trySetSpeed(int new_speed) {
+    if (new_speed <= 0) { return; }
+    curMoveSpeed = new_speed;
   }
 
   // Unit "getters" (NOT YET TESTED)
@@ -88,6 +105,30 @@ struct StateHolder : public Printable {
   bool isMillis() {
     return !isInches(); // opposites
   }
+
+
+  Vector2d toInch(Vector2d vect) {
+    if (isInches()) {
+      return vect; // Already in inches!
+    }
+    // If not inches, must be millis!
+    return vect * 0.0393701; // Magic num from google, millis to inches
+  }
+
+  Vector2d toAbs(Vector2d vect) {
+    if (isAbsolute()) {
+      return vect; // Already absolute!
+    }
+    // If not absolute, must be relative
+    return vect + curPos; // Make it absolute by adding to curPos
+  }
+
+  Vector2d toInchAbs(Vector2d vect) {
+    vect = toInch(vect);
+    vect = toAbs(vect);
+    return vect;
+  }
+
 
   // Debugging is god awful without this
   size_t printTo(Print& p) const {
