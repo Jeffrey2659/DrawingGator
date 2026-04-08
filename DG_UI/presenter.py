@@ -125,6 +125,8 @@ class Presenter:
         self._state_lines: list[str] = []
         self._rx_buffer = ""
         self._speed_profile = "grbl_normal"
+        self._resume_oks_needed = 0  # counts down from 2 after M108 before resuming stream
+        self._reset_cmd_queue: list[str] = []  # commands sent one-at-a-time during reset
 
         # add a path to store loaded image
         self._last_image_path = None
@@ -167,6 +169,10 @@ class Presenter:
             self.v.on_resume_clicked = self.handle_resume
         if hasattr(self.v, "on_stop_clicked"):
             self.v.on_stop_clicked = self.handle_stop
+        if hasattr(self.v, "on_pause_resume_clicked"):
+            self.v.on_pause_resume_clicked = self.handle_pause_resume
+        if hasattr(self.v, "on_reset_clicked"):
+            self.v.on_reset_clicked = self.handle_reset
         if hasattr(self.v, "on_speed_preset"):
             self.v.on_speed_preset = self.handle_speed_preset
 
@@ -276,6 +282,36 @@ class Presenter:
             self.v.log("Resuming…")
             self.streamer.resume()
 
+    def _send_cmd(self, cmd: str):
+        """Send a single G/M-code command directly to the device."""
+        if self.s.is_open():
+            self.v.log(f">> {cmd}")
+            self.s.write((cmd + "\r\n").encode("ascii", errors="ignore"))
+
+    def handle_pause_resume(self):
+        """Toggle between paused and running. Sends M0/M108 to the device."""
+        if self.streamer.is_paused():
+            # Resume: send M108, then wait for 2 OKs before resuming the stream.
+            # OK 1 = Arduino acknowledged M108; OK 2 = current leg finished.
+            self._send_cmd("M108")
+            self._resume_oks_needed = 2
+            self.v.log("Resuming… waiting for device confirmation.")
+        else:
+            # Pause: halt hardware between steps, then pause streamer
+            self._send_cmd("M0")
+            self.streamer.stop_preserve()
+            self.v.log("Paused.")
+
+    def handle_reset(self):
+        """Reset plotter to origin. Sends M112 → M999 → G0 X0 Y0, waiting for ok between each."""
+        self.streamer.stop()
+        _allow_sleep()
+        self.v.log("Resetting to origin…")
+        self._reset_cmd_queue = ["M999", "G0 X0 Y0"]
+        self._send_cmd("M112")
+        if hasattr(self.v, "set_paused"):
+            self.v.set_paused(False)
+
     def handle_show_preview(self):
         if hasattr(self.v, "show_preview"):
             self.v.show_preview()
@@ -309,6 +345,23 @@ class Presenter:
 
     def _handle_rx_line(self, line: str):
         """Process a single complete line from the controller."""
+        # Count OKs after M108 before resuming the stream
+        if self._reset_cmd_queue and line.strip().lower() == "ok":
+            self.v.log(f"<< {line}")
+            cmd = self._reset_cmd_queue.pop(0)
+            self._send_cmd(cmd)
+            if not self._reset_cmd_queue:
+                self.v.log("Reset complete.")
+            return
+
+        if self._resume_oks_needed > 0 and line.strip().lower() == "ok":
+            self._resume_oks_needed -= 1
+            self.v.log(f"<< {line}")
+            if self._resume_oks_needed == 0:
+                self.v.log("Resume confirmed. Continuing stream…")
+                self.streamer.resume()
+            return
+
         # State-dump logic (G60 etc.) still works unchanged
         if line.startswith("Printing State:"):
             self._state_block_active = True
@@ -354,8 +407,8 @@ class Presenter:
         self.v.log("Stream complete.")
 
     def _on_paused_changed(self, paused: bool):
-        # Hook for toggling UI when you add Pause/Resume buttons
-        pass
+        if hasattr(self.v, "set_paused"):
+            self.v.set_paused(paused)
     def handle_manual_send(self, text: str):
         print(f"[manual] got: {text!r}", flush=True)
         if not self.s.is_open():
@@ -413,10 +466,13 @@ class Presenter:
                 if mode == "grayscale":
                     lines, width, height, width_inch, height_inch, width_cm, height_cm, output_path = conversion_svg(path, output_path="output.svg")
                     strokes, num_strokes = extract_coordinates(output_path)
-                # call color
+                # call color (preview only — G-code always uses grayscale SVG)
                 else:
                     width, height, width_inch, height_inch, width_cm, height_cm, output_path = conversion_svg_color(path, output_path="output_color.svg")
                     strokes, num_strokes = extract_coordinates_color(output_path)
+                    # generate grayscale SVG for G-code even in color mode
+                    _, _, _, _, width_inch, height_inch, _, grayscale_path = conversion_svg(path, output_path="output.svg")
+                    output_path = grayscale_path
 
                 if hasattr(self.v, "mpl_widget"):
                     self.v.mpl_widget.plot_svg(strokes, num_strokes=num_strokes, image_size=(width_inch, height_inch))
@@ -503,7 +559,25 @@ class Presenter:
             self.v.warn("Text-to-SVG conversion failed.")
             return
         self.v.log(f"Text SVG created: {svg_path}")
-        self.handle_upload_svg(svg_path)
+
+        self._last_image_path = svg_path
+
+        # Preview: text SVG is already in y-down space so do NOT invert y-axis
+        if hasattr(self.v, "mpl_widget"):
+            try:
+                strokes, num_strokes = extract_coordinates(svg_path)
+                self.v.mpl_widget.plot_svg(strokes, num_strokes=num_strokes, invert_y=False, invert_x=True)
+                if hasattr(self.v, "dashed_zone"):
+                    self.v.dashed_zone.hide()
+                self.v.mpl_widget.show()
+            except Exception as e:
+                self.v.warn(f"Text preview failed: {e}")
+
+        # G-code generation
+        self.v.log("Starting vpype conversion to G-code…")
+        out_path = str(Path(svg_path).with_suffix(".gcode"))
+        self.v.log(f"G-code will be saved to: {Path(out_path).resolve()}")
+        self._vp.run_svg_to_gcode(svg_path, out_path=out_path, profile=self._speed_profile)
 
     def _on_vpype_finished(self, ok: bool, gcode_path: str, log_text: str):
         if log_text:

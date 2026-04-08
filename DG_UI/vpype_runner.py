@@ -4,7 +4,6 @@ from pathlib import Path
 import shlex
 import sys
 import os
-import tempfile
 
 # _CONFIG_TOML = r"""
 # [gwrite]
@@ -72,7 +71,8 @@ class VpypeRunner(QObject):
             return
         if cfg_path:
             print(f"Using config: {cfg_path}")
-            print(f"Config contents:\n{cfg_path.read_text()}") 
+            print(f"Config contents:\n{cfg_path.read_text()}")
+
         program = "vpype"
         args = [
             "--config", cfg_path.as_posix(),
@@ -118,9 +118,33 @@ class VpypeRunner(QObject):
             out_path = str(Path.home() / "Downloads" / "dg_text_output.svg")
 
         sx = "-1" if mirror else "1"
+
+        lines = text.splitlines()
+        # drop trailing blank lines
+        while lines and not lines[-1].strip():
+            lines.pop()
+
+        # Line height in vpype internal pixels.
+        # vpype text -s uses points (1pt = 96/72 px); 1.4× gives comfortable spacing.
+        line_height = size * (96.0 / 72.0) * 1.4
+
         program = "vpype"
-        args = [
-            "text", "-f", font, "-s", str(size), text,
+        args = []
+
+        if len(lines) == 1:
+            args += ["text", "-f", font, "-s", str(size), lines[0]]
+        else:
+            # Process lines in reverse order so line[0] ends up at y=0 (top).
+            # Each step: add text for this line (if non-empty), then shift all
+            # existing geometry DOWN by line_height to make room for the next
+            # line above it in the original order.
+            for i, line in enumerate(reversed(lines)):
+                if line.strip():
+                    args += ["text", "-f", font, "-s", str(size), line]
+                if i < len(lines) - 1:
+                    args += ["translate", "0", f"{line_height:.4f}"]
+
+        args += [
             "scale", "--", sx, "1",
             "write", Path(out_path).as_posix(),
         ]

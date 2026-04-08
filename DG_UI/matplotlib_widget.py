@@ -28,11 +28,14 @@ class MatplotlibWidget(QWidget):
 ############ NR.2 --> ANIMATION SIMULATION ###################################
 
     # same function as in svg_algorithm.py 
-    def plot_svg(self, strokes, num_strokes = None, image_size = None):
+    def plot_svg(self, strokes, num_strokes=None, image_size=None, invert_y=True, invert_x=False):
         self.clear()
         self.ax = self.figure.add_subplot(111)
         self.ax.set_aspect('equal')
-        self.ax.invert_yaxis()
+        if invert_y:
+            self.ax.invert_yaxis()
+        if invert_x:
+            self.ax.invert_xaxis()
         self.ax.axis('off')
         
         if not strokes or not any(strokes):

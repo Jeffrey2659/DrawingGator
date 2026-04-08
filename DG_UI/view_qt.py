@@ -32,7 +32,8 @@ class ViewQt(QMainWindow, Ui_MainWindow):
     on_show_svg_preview = None
     on_speed_preset = None
     on_stop_clicked = None
-
+    on_pause_resume_clicked = None
+    on_reset_clicked = None
 
     on_color_clicked = None
     on_grayscale_clicked = None
@@ -387,40 +388,40 @@ class ViewQt(QMainWindow, Ui_MainWindow):
 
        
 
-        #manual command dock
-        # dock = QDockWidget("Manual Command", self)
-        # dock.setObjectName("ManualCommandDock")
-        # dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea | Qt.DockWidgetArea.TopDockWidgetArea)
+    #    # manual command dock
+    #     dock = QDockWidget("Manual Command", self)
+    #     dock.setObjectName("ManualCommandDock")
+    #     dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea | Qt.DockWidgetArea.TopDockWidgetArea)
 
 
-        # add the matplotlib widget for svg display
-        # self.mpl_widget = MatplotlibWidget()
-        # preview_dock = QDockWidget()
-        # preview_dock.setObjectName("SVGPreviewDock")
-        # preview_dock.setTitleBarWidget(QWidget())  # Hide the title bar
-        # preview_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.LeftDockWidgetArea)
-        # preview_dock.setWidget(self.mpl_widget)
-        # preview_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable | 
-        #                           QDockWidget.DockWidgetFeature.DockWidgetFloatable 
-        #                           )
-        # self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, preview_dock)
+    #    # add the matplotlib widget for svg display
+    #     self.mpl_widget = MatplotlibWidget()
+    #     preview_dock = QDockWidget()
+    #     preview_dock.setObjectName("SVGPreviewDock")
+    #     preview_dock.setTitleBarWidget(QWidget())  # Hide the title bar
+    #     preview_dock.setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.LeftDockWidgetArea)
+    #     preview_dock.setWidget(self.mpl_widget)
+    #     preview_dock.setFeatures(QDockWidget.DockWidgetFeature.DockWidgetMovable | 
+    #                               QDockWidget.DockWidgetFeature.DockWidgetFloatable 
+    #                               )
+    #     self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, preview_dock)
         
-        # Set initial size for the dock (optional but helpful)
-        # preview_dock.setMinimumWidth(300)
-        # w = QWidget(dock)
-        # lay = QHBoxLayout(w)
-        # lay.setContentsMargins(8, 8, 8, 8)
+    #    # Set initial size for the dock (optional but helpful)
+    #     preview_dock.setMinimumWidth(300)
+    #     w = QWidget(dock)
+    #     lay = QHBoxLayout(w)
+    #     lay.setContentsMargins(8, 8, 8, 8)
 
-        # self.manualLine = QLineEdit(w)
-        # self.manualLine.setPlaceholderText("Type a G-code, e.g. G0 X10 Y10 (Enter to send)")
-        # self.manualSendBtn = QPushButton("Send", w)
+    #     self.manualLine = QLineEdit(w)
+    #     self.manualLine.setPlaceholderText("Type a G-code, e.g. G0 X10 Y10 (Enter to send)")
+    #     self.manualSendBtn = QPushButton("Send", w)
 
-        # lay.addWidget(self.manualLine, 1)
-        # lay.addWidget(self.manualSendBtn, 0)
+    #     lay.addWidget(self.manualLine, 1)
+    #     lay.addWidget(self.manualSendBtn, 0)
 
-        # w.setLayout(lay)
-        # dock.setWidget(w)
-        # self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
+    #     w.setLayout(lay)
+    #     dock.setWidget(w)
+    #     self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, dock)
 
 
 ##############################################################################
@@ -518,6 +519,30 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         )
         left_side.addWidget(self.stopBtn, alignment=Qt.AlignmentFlag.AlignCenter)
 
+        self.pauseResumeBtn = QPushButton("⏸  Pause")
+        self.pauseResumeBtn.setFixedHeight(32)
+        self.pauseResumeBtn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._paused = False
+        self._pause_style = (
+            "background-color: #e8b84b; color: #fff; border: 1px solid #c89a30;"
+            "border-radius: 4px; padding: 6px 12px; font-weight: bold;"
+        )
+        self._resume_style = (
+            "background-color: #6abf69; color: #fff; border: 1px solid #4a9e49;"
+            "border-radius: 4px; padding: 6px 12px; font-weight: bold;"
+        )
+        self.pauseResumeBtn.setStyleSheet(self._pause_style)
+        left_side.addWidget(self.pauseResumeBtn, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        self.resetBtn = QPushButton("↩  Reset to Origin")
+        self.resetBtn.setFixedHeight(32)
+        self.resetBtn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.resetBtn.setStyleSheet(
+            "background-color: #9b7bb8; color: #fff; border: 1px solid #7a5a9a;"
+            "border-radius: 4px; padding: 6px 12px; font-weight: bold;"
+        )
+        left_side.addWidget(self.resetBtn, alignment=Qt.AlignmentFlag.AlignCenter)
+
         # toggle 
         self.toggle_switch = ColorSwitch(
             checked_color="#708090",
@@ -580,7 +605,9 @@ class ViewQt(QMainWindow, Ui_MainWindow):
 
         self.connect.clicked.connect(lambda: self.on_connect_clicked and self.on_connect_clicked())
         self.sendGcode.clicked.connect(lambda: self.on_send_clicked and self.on_send_clicked())
-        self.stopBtn.clicked.connect(lambda: self.on_stop_clicked and self.on_stop_clicked())
+      #  self.stopBtn.clicked.connect(lambda: self.on_stop_clicked and self.on_stop_clicked())
+        self.pauseResumeBtn.clicked.connect(lambda: self.on_pause_resume_clicked and self.on_pause_resume_clicked())
+        self.resetBtn.clicked.connect(lambda: self.on_reset_clicked and self.on_reset_clicked())
         self.actionUpload_Gcode.triggered.connect(lambda: self.on_upload_clicked and self.on_upload_clicked())
 
 
@@ -741,6 +768,15 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         else:
             self.ready_dot.setStyleSheet("background-color: red; border-radius: 6px;")
             self.ready_text.setText("Not ready")
+
+    def set_paused(self, paused: bool) -> None:
+        self._paused = paused
+        if paused:
+            self.pauseResumeBtn.setText("▶  Resume")
+            self.pauseResumeBtn.setStyleSheet(self._resume_style)
+        else:
+            self.pauseResumeBtn.setText("⏸  Pause")
+            self.pauseResumeBtn.setStyleSheet(self._pause_style)
 
     def log(self, text: str) -> None:
         self.plainTextEdit.appendPlainText(text)

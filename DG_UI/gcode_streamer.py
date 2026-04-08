@@ -49,6 +49,7 @@ class GCodeStreamer(QObject):
         self.timer.stop()
         self.lines = []
         self.idx = 0
+        self.total = 0
         self.awaiting_ok = False
         self._paused = False
         self._rx.clear()
@@ -62,6 +63,8 @@ class GCodeStreamer(QObject):
         if not self._paused:
             return
         self._paused = False
+        self.awaiting_ok = False  # clear any stale ok-wait (e.g. device halted by M0 never sent ok)                                                                        
+        self._rx.clear()   
         self.pausedChanged.emit(False)
         self.timer.start()   # restart timer in case it was stopped by stop_preserve()
         self._try_send_next()
