@@ -102,7 +102,7 @@ def conversion_svg_color(file_path, output_path = "output.svg", potrace_path = "
     # define criteria
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.01)
     # increase for better results
-    k = 12
+    k = 6
     _, labels, centers = cv2.kmeans(color_img, k, None, criteria, 10, cv2.KMEANS_PP_CENTERS)
 
     # back to 8 bits
@@ -156,6 +156,7 @@ def conversion_svg_color(file_path, output_path = "output.svg", potrace_path = "
             hex_color = rgb2hex(color[0], color[1], color[2])
             for path in paths:
                 dwg.add(dwg.path(d=path.d(), fill=hex_color, stroke='none'))
+                #dwg.add(dwg.path(d=path.d(), stroke='none'))
             #split_svg_paths(img_svg)
             #print("SVG created successfully!")
         finally:
@@ -506,8 +507,9 @@ if __name__ == "__main__":
     #input_path = "images/simple.png"
     #input_path = "images/logo.jpg"
     #input_path = "images/testing.png"
-    input_path = "images/prototype_design.jpg"
+    #input_path = "images/prototype_design.jpg"
     #input_path = "images/gator.jpg"
+    input_path = "images/menu.jpg"
     output_path = "output.svg"
     potrace_executable = "potrace"
 
