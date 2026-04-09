@@ -69,7 +69,7 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
-        self.connect.setText(_translate("MainWindow", "Connect to Arduino"))
+        self.connect.setText(_translate("MainWindow", "Connect"))
         self.sendGcode.setText(_translate("MainWindow", "Start Drawing"))
         self.menuMenu.setTitle(_translate("MainWindow", "Menu"))
         self.menuEdit.setTitle(_translate("MainWindow", "Edit"))

@@ -238,8 +238,8 @@ class ViewQt(QMainWindow, Ui_MainWindow):
             "background-color: transparent; border: none;"
         )
 
-        window_button = QPushButton("Connect to Arduino")
-        window_button.setFixedHeight(30)
+        window_button = QPushButton("Connect")
+        window_button.setFixedHeight(28)
         window_button.setCursor(Qt.CursorShape.PointingHandCursor)
         window_button.setStyleSheet("""
             QPushButton {
@@ -669,7 +669,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         #self.create_show_svg_preview()
 
         title_layout.addWidget(window_subtitle)
-        title_layout.addWidget(window_button)
+        title_layout.addWidget(window_button, alignment=Qt.AlignmentFlag.AlignCenter)
         title_layout.addWidget(without_conn, alignment=Qt.AlignmentFlag.AlignCenter)
         window_layout.addWidget(conn_title)
 
@@ -743,7 +743,7 @@ class ViewQt(QMainWindow, Ui_MainWindow):
         else:
             self.status_dot.setStyleSheet("background-color: red; border-radius: 6px;")
             self.status_text.setText("Disconnected")
-            self.connect.setText("Connect to Arduino")
+            self.connect.setText("Connect")
             self.connect.setStyleSheet(
                 "background-color: #a8d5ba; color: #ffffff; border: none;"
                 "border-radius: 4px; padding: 8px 16px; font-weight: bold;"
